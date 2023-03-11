@@ -49,21 +49,27 @@ class VanillaNote:
     key: int  # 0-23
     # isVanilla: bool
 
-    def __init__(self, instrument, key) -> None:
+    def __init__(self, instrument: int, key: int) -> None:
         self.block_id = instrument
         self.key = key
 
     def __repr__(self) -> str:
         return "(%i, %i)" % (self.block_id, self.key)
 
-    def __eq__(self, __o: object) -> bool:
+    def __eq__(self, __o: object):
         return self.key == __o.key and self.block_id == __o.block_id
 
-    def __lt__(self, other):
-        if self.block_id != other.block_id:
-            return self.block_id < other.block_id
+    def __lt__(self, __o: object):
+        if __o is None:
+            return False
+        if self.block_id != __o.block_id:
+            return self.block_id < __o.block_id
         else:
-            return self.key < other.key
+            return self.key < __o.key
+
+    @staticmethod
+    def create_from_nbs_note(note: pynbs.Note):
+        return VanillaNote(note.instrument, note.key - 33)
 
 
 class VanillaChord:
@@ -75,24 +81,24 @@ class VanillaChord:
     def __iter__(self):
         return iter(self.notes)
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return str(self.notes)
 
     def __len__(self):
         return len(self.notes)
 
-    def __lt__(self, other):
-        if len(self) != len(other):
-            return len(self) < len(other)
-        if any(self) and any(other):
-            return min(self) < min(other)
+    def __lt__(self, __o: object):
+        if len(self) != len(__o):
+            return len(self) < len(__o)
+        if any(self) and any(__o):
+            return min(self) < min(__o)
         else:
             return False
 
-    def __eq__(self, other_chord: object):
-        return len(self) == len(other_chord) and self.contains(other_chord)
+    def __eq__(self, __o: object):
+        return len(self) == len(__o) and self.contains(__o)
 
-    def contains(self, note_search: list[VanillaNote]):
+    def contains(self, note_search: "VanillaChord | list[VanillaNote]") -> bool:
         working_copy_notes = self.copy()
         for note in note_search:
             if note not in working_copy_notes:
@@ -100,21 +106,21 @@ class VanillaChord:
             working_copy_notes.remove(note)
         return True
 
-    def copy(self):
+    def copy(self) -> "VanillaChord":
         return VanillaChord(self.notes.copy())
 
-    def remove(self, note: VanillaNote):
+    def remove(self, note: VanillaNote) -> None:
         self.notes.remove(note)
 
-    def removenotes(self, chord: list[VanillaNote]):
+    def removenotes(self, chord: "VanillaChord | list[VanillaNote]") -> None:
         for note in chord:
             self.remove(note)
 
     @staticmethod
-    def create_from_nbs_chord(chord):
+    def create_from_nbs_chord(chord: list[pynbs.Note]) -> "VanillaChord":
         new_chord = []
         for note in chord:
-            new_chord.append(VanillaNote(note.instrument, note.key - 33))
+            new_chord.append(VanillaNote.create_from_nbs_note(note))
         return VanillaChord(new_chord)
 
 
@@ -129,11 +135,11 @@ class Channel:
     def __iter__(self):
         return iter(self.chord)
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return "%i, %s" % (self.id, self.chord)
 
-    def __lt__(self, other):
-        return self.chord < other.chord
+    def __lt__(self, __o: object):
+        return self.chord < __o.chord
 
 
 # Stores list of all channels that should play on a given tick
@@ -148,18 +154,20 @@ class TickChannels:
     def __iter__(self):
         return iter(self.channels)
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return "%i %s" % (self.tick, self.channels)
 
     def __len__(self):
         return len(self.channels)
 
-    def __lt__(self, other):
-        return self.tick < other.tick
+    def __lt__(self, __o: object):
+        return self.tick < __o.tick
 
 
 # determine the combination of channels to form chord
-def get_channels_in_chord(channels: list[Channel], chord: VanillaChord):
+def get_channels_in_chord(
+    channels: list[Channel], chord: "VanillaChord | list[VanillaNote]"
+):
     channels_played_in_chord = []
     chord_working_copy = chord.copy()
     for channel in channels:
