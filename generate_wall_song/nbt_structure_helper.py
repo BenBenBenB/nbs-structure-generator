@@ -10,12 +10,12 @@ class Vector:
     z: int
     __slots__ = ["x", "y", "z"]
 
-    def __init__(self, x: int, y: int, z: int):
+    def __init__(self, x: int, y: int, z: int) -> None:
         self.x = x
         self.y = y
         self.z = z
 
-    def get_nbt(self, tag_name: str):
+    def get_nbt(self, tag_name: str) -> TAG_List:
         x, y, z = self.x, self.y, self.z
         # structures larger than 32x32x32 are allowed, just need to lie about the size
         if tag_name == "size":
@@ -45,10 +45,8 @@ class Vector:
         else:
             raise ValueError("Must multiply by scalar int")
 
-    def __floordiv__(self, __o: int):
-        return Vector(
-            floor(self.x // __o), floor(self.y // __o), floor(self.z // __o)
-        )
+    def __floordiv__(self, __o: int) -> "Vector":
+        return Vector(floor(self.x // __o), floor(self.y // __o), floor(self.z // __o))
 
     def copy(self) -> "Vector":
         return Vector(self.x, self.y, self.z)
@@ -69,7 +67,7 @@ class Vector:
         """Get the dot product of the two Vectors"""
         return self.x * __o.x + self.y * __o.y + self.z * __o.z
 
-    def cross(self, __o: "Vector") -> int:
+    def cross(self, __o: "Vector") -> "Vector":
         """Get the cross product of the two Vectors"""
         x = self.y * __o.z - self.z * __o.y
         y = self.z * __o.x - self.x * __o.z
@@ -137,7 +135,7 @@ class Cuboid:
             or (coord.z == self.min_corner.z or coord.z == self.max_corner.z)
         )
 
-    def edge_contains(self, coord: Vector):
+    def edge_contains(self, coord: Vector) -> bool:
         if not self.contains(coord):
             return False
         x_valid = coord.x == self.min_corner.x or coord.x == self.max_corner.x
@@ -148,7 +146,7 @@ class Cuboid:
         return (x_valid and z_valid) or (y_valid and z_valid)
 
     @staticmethod
-    def __get_min_max_corners(coord1: "Vector", coord2: "Vector"):
+    def __get_min_max_corners(coord1: "Vector", coord2: "Vector") -> "Vector":
         min_coord = Vector(
             min([coord1.x, coord2.x]),
             min([coord1.y, coord2.y]),
@@ -180,7 +178,7 @@ class BlockData:
             __o.properties
         )
 
-    def get_nbt(self):
+    def get_nbt(self) -> TAG_Compound:
         nbt_block_state = TAG_Compound()
         if any(self.properties):
             block_properties = TAG_Compound(name="Properties")
@@ -219,29 +217,29 @@ class Palette:
     def __iter__(self):
         return iter(self.__blocks)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> BlockData:
         return self.__blocks[key]
 
-    def try_append(self, block: BlockData):
+    def try_append(self, block: BlockData) -> None:
         if block is None:
             raise ValueError("Palette cannont contain None")
         if block not in self.__blocks:
             self.__blocks.append(block)
 
-    def extend(self, blocks: list[BlockData]):
+    def extend(self, blocks: list[BlockData]) -> None:
         for block in blocks:
             self.try_append(block)
 
-    def get_state(self, block: BlockData):
+    def get_state(self, block: BlockData) -> int:
         return self.__blocks.index(block)
 
-    def try_get_state(self, block: BlockData):
+    def try_get_state(self, block: BlockData) -> int:
         try:
             return self.__blocks.index(block)
         except ValueError:
             return None
 
-    def get_nbt(self):
+    def get_nbt(self) -> TAG_List:
         nbt_list = TAG_List(name="palette", type=TAG_Compound)
         for block in self.__blocks:
             nbt_list.tags.append(block.get_nbt())
@@ -258,14 +256,14 @@ class BlockPosition:
         self.pos = pos.copy()
         self.state = state
 
-    def update_state(self, new_state: int):
+    def update_state(self, new_state: int) -> bool:
         if self.state != new_state:
             self.state = new_state
             return True
         else:
             return False
 
-    def get_nbt(self):
+    def get_nbt(self) -> TAG_Compound:
         nbt_block = TAG_Compound()
         nbt_block.tags.append(self.pos.get_nbt("pos"))
         nbt_block.tags.append(TAG_Int(name="state", value=self.state))
@@ -330,10 +328,12 @@ class StructureBlocks:
         self.blocks = []
         self.palette = Palette()
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> BlockPosition:
         return self.blocks[key]
 
-    def get_nbt(self, fill_void_with_air: bool = True, trim_excess_air: bool = False):
+    def get_nbt(
+        self, fill_void_with_air: bool = True, trim_excess_air: bool = False
+    ) -> NBTFile:
         """Create NBTFile that can be saved to disk then loaded into Minecraft via a structure block. Default args will save like a structure block would.
 
         Args:
@@ -442,7 +442,7 @@ class StructureBlocks:
             block.pos.add(delta)
         return len(self.blocks)
 
-    def clone_structure(self, other: "StructureBlocks", dest: Vector):
+    def clone_structure(self, other: "StructureBlocks", dest: Vector) -> int:
         """Completely clone other structure to this one. dest defines minimum x,y,z corner of target volume"""
         count = 0
         for otherblock in other.blocks:
@@ -464,7 +464,7 @@ class StructureBlocks:
                     count += 1
         return count
 
-    def clone_block(self, s_pos: Vector, t_pos: Vector):
+    def clone_block(self, s_pos: Vector, t_pos: Vector) -> bool:
         """Clone a single block from s_pos to t_pos"""
         block = self.__get_block(s_pos)
         if block is None:
@@ -531,7 +531,7 @@ class StructureBlocks:
         count += self.fill_outline(volume, fill_block)
         return count
 
-    def __pressurize_list(self, blocks_to_write: list[BlockPosition], volume: Cuboid):
+    def __pressurize_list(self, blocks_to_write: list[BlockPosition], volume: Cuboid) -> None:
         """Replace voids in the temp list with air blocks so that structure loads like one from minecraft would."""
         air_state = self.__upsert_palette(AIR_BLOCK)
         for pos in volume:
