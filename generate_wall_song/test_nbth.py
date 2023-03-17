@@ -1,24 +1,24 @@
 #todo write actual unit tests
-import nbt_structure_helper as nbth
+from nbt_structure_helper import StructureBlocks, Vector, Cuboid, AIR_BLOCK
 import block_settings as blocks
 
 
 def christmas_tree(save_to_path, filename, width, block):
-    t_structure = nbth.StructureBlocks()
+    t_structure = StructureBlocks()
     step_height = 3
-    c1 = nbth.Coordinate(0, 0, 0)
-    c2 = nbth.Coordinate(width - 1, step_height - 1, width - 1)
+    c1 = Vector(0, 0, 0)
+    c2 = Vector(width - 1, step_height - 1, width - 1)
     count = 0
     while c2.x >= c1.x:
-        pvol = nbth.Cuboid(c1, c2)
+        pvol = Cuboid(c1, c2)
         count += t_structure.fill(pvol, block)
         count += t_structure.fill_frame(pvol, None)
-        c1.add(nbth.Coordinate(1, step_height, 1))
-        c2.add(nbth.Coordinate(-1, step_height, -1))
-    t_structure.shift(nbth.Coordinate(0, 2, 0))
+        c1.add(Vector(1, step_height, 1))
+        c2.add(Vector(-1, step_height, -1))
+    t_structure.shift(Vector(0, 2, 0))
     c1.y = 0
     c2.y = 2
-    pvol = nbth.Cuboid(c1, c2)
+    pvol = Cuboid(c1, c2)
     t_structure.fill(pvol, block)
     t_structure.get_nbt().write_file(filename=save_to_path + filename)
 
@@ -30,12 +30,12 @@ def create_pyramid_range(save_to_path, base_width_range, block, step_height=1):
 
 
 def create_pyramid(save_to_path, filename, width, block, step_height=1):
-    p_structure = nbth.StructureBlocks()
-    c1 = nbth.Coordinate(0, 0, 0)
-    c2 = nbth.Coordinate(width - 1, step_height - 1, width - 1)
+    p_structure = StructureBlocks()
+    c1 = Vector(0, 0, 0)
+    c2 = Vector(width - 1, step_height - 1, width - 1)
     count = 0
     while c2.x >= c1.x:
-        pvol = nbth.Cuboid(c1, c2)
+        pvol = Cuboid(c1, c2)
         count += p_structure.fill(pvol, blocks.light_source)
         count += p_structure.fill_frame(pvol, block)
         c1.x, c1.y, c1.z = c1.x + 1, c1.y + step_height, c1.z + 1
@@ -45,13 +45,13 @@ def create_pyramid(save_to_path, filename, width, block, step_height=1):
 
 
 def test_fill(save_to_path, name, size: int, block1, block2):
-    f_structure = nbth.StructureBlocks()
-    c1 = nbth.Coordinate(0, 0, 0)
-    c2 = nbth.Coordinate(size - 1, size - 1, size - 1)
+    f_structure = StructureBlocks()
+    c1 = Vector(0, 0, 0)
+    c2 = Vector(size - 1, size - 1, size - 1)
     count = 0
-    vol1 = nbth.Cuboid(c1, c2)
-    vol2 = nbth.Cuboid(c1, c1)
-    vol3 = nbth.Cuboid(c2, c2)
+    vol1 = Cuboid(c1, c2)
+    vol2 = Cuboid(c1, c1)
+    vol3 = Cuboid(c2, c2)
     count += f_structure.fill(vol1, block1)
     count += f_structure.fill(vol2, block2)
     count += f_structure.fill(vol3, None)
@@ -59,13 +59,13 @@ def test_fill(save_to_path, name, size: int, block1, block2):
 
 
 def test_fill_replace(save_to_path, name, size: int, block, filter):
-    f_structure = nbth.StructureBlocks()
-    c1 = nbth.Coordinate(0, 0, 0)
-    c2 = nbth.Coordinate(size - 1, size - 1, size - 1)
+    f_structure = StructureBlocks()
+    c1 = Vector(0, 0, 0)
+    c2 = Vector(size - 1, size - 1, size - 1)
     count = 0
-    vol1 = nbth.Cuboid(c1, c2)
-    vol2 = nbth.Cuboid(c1, c1)
-    vol3 = nbth.Cuboid(c2, c2)
+    vol1 = Cuboid(c1, c2)
+    vol2 = Cuboid(c1, c1)
+    vol3 = Cuboid(c2, c2)
     count += f_structure.fill_replace(vol1, filter, None)
     count += f_structure.fill_replace(vol2, block, filter)
     count += f_structure.fill_replace(vol3, None, filter)
@@ -73,20 +73,20 @@ def test_fill_replace(save_to_path, name, size: int, block, filter):
 
 
 def test_clone(save_to_path, name, block1, block2):
-    f_structure = nbth.StructureBlocks()
-    c1 = nbth.Coordinate(0, 0, 0)
-    c2 = nbth.Coordinate(1, 1, 1)
+    f_structure = StructureBlocks()
+    c1 = Vector(0, 0, 0)
+    c2 = Vector(1, 1, 1)
     count = 0
     count += f_structure.set_block(c1, block1)
     count += f_structure.set_block(c2, block2)
     count += f_structure.clone_block(c1, c2 * 2)
-    vol1 = nbth.Cuboid(c1, c2)
+    vol1 = Cuboid(c1, c2)
     count += f_structure.clone(vol1, c2 * 2)
     f_structure.get_nbt().write_file(filename=save_to_path + name)
 
-    g_structure = nbth.StructureBlocks()
+    g_structure = StructureBlocks()
     g_structure.clone_structure(f_structure, c2 * 5)
-    g_structure.set_block(c1, nbth.AIR_BLOCK)
+    g_structure.set_block(c1, AIR_BLOCK)
     if g_structure.get_block_state(c2 * 5) != block1:
         raise ValueError("should be block1")
     g_structure.get_nbt(fill_void_with_air=False).write_file(
@@ -101,21 +101,21 @@ def test_clone(save_to_path, name, block1, block2):
 
 
 def test_fills(save_to_path, name, block1, block2):
-    c1 = nbth.Coordinate(0, 0, 0)
-    f_structure = nbth.StructureBlocks()
+    c1 = Vector(0, 0, 0)
+    f_structure = StructureBlocks()
 
-    c2 = nbth.Coordinate(1, 1, 1)
-    vol1 = nbth.Cuboid(c1, c2 * 9)
+    c2 = Vector(1, 1, 1)
+    vol1 = Cuboid(c1, c2 * 9)
     f_structure.fill(vol1, block1)
     f_structure.fill_outline(vol1, block2)
     f_structure.fill_frame(vol1, block1)
 
-    c2 = nbth.Coordinate(7, 2, 7)
-    vol2 = nbth.Cuboid(c1, c2)
+    c2 = Vector(7, 2, 7)
+    vol2 = Cuboid(c1, c2)
     f_structure.fill_hollow(vol2, block2)
 
-    c2 = nbth.Coordinate(5, 2, 5)
-    vol3 = nbth.Cuboid(c1, c2)
+    c2 = Vector(5, 2, 5)
+    vol3 = Cuboid(c1, c2)
     f_structure.fill_keep(vol3, block1)
 
     f_structure.get_nbt().write_file(filename=save_to_path + name)

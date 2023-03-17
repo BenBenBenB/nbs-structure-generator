@@ -4,7 +4,7 @@ from math import floor
 AIR_BLOCK_NAME = "minecraft:air"
 
 
-class Coordinate:
+class Vector:
     x: int
     y: int
     z: int
@@ -32,26 +32,26 @@ class Coordinate:
     def __eq__(self, __o: object) -> bool:
         return self.x == __o.x and self.y == __o.y and self.z == __o.z
 
-    def __add__(self, __o: object) -> "Coordinate":
-        return Coordinate(self.x + __o.x, self.y + __o.y, self.z + __o.z)
+    def __add__(self, __o: object) -> "Vector":
+        return Vector(self.x + __o.x, self.y + __o.y, self.z + __o.z)
 
     # Allow negatives for deltas
-    def __sub__(self, __o: object) -> "Coordinate":
-        return Coordinate(self.x - __o.x, self.y - __o.y, self.z - __o.z)
+    def __sub__(self, __o: object) -> "Vector":
+        return Vector(self.x - __o.x, self.y - __o.y, self.z - __o.z)
 
-    def __mul__(self, __o: int) -> "Coordinate":
+    def __mul__(self, __o: int) -> "Vector":
         if isinstance(__o, int):
-            return Coordinate(self.x * __o, self.y * __o, self.z * __o)
+            return Vector(self.x * __o, self.y * __o, self.z * __o)
         else:
             raise ValueError("Must multiply by scalar int")
 
     def __floordiv__(self, __o: int):
-        return Coordinate(
+        return Vector(
             floor(self.x // __o), floor(self.y // __o), floor(self.z // __o)
         )
 
-    def copy(self) -> "Coordinate":
-        return Coordinate(self.x, self.y, self.z)
+    def copy(self) -> "Vector":
+        return Vector(self.x, self.y, self.z)
 
     def add(self, __o: object) -> None:
         """add x,y,z to self"""
@@ -65,16 +65,16 @@ class Coordinate:
         self.y -= __o.y
         self.z -= __o.z
 
-    def dot(self, __o: "Coordinate") -> int:
-        """Get the dot product of the two coordinates"""
+    def dot(self, __o: "Vector") -> int:
+        """Get the dot product of the two Vectors"""
         return self.x * __o.x + self.y * __o.y + self.z * __o.z
 
-    def cross(self, __o: "Coordinate") -> int:
-        """Get the cross product of the two coordinates"""
+    def cross(self, __o: "Vector") -> int:
+        """Get the cross product of the two Vectors"""
         x = self.y * __o.z - self.z * __o.y
         y = self.z * __o.x - self.x * __o.z
         z = self.x * __o.y - self.y * __o.x
-        return Coordinate(x, y, z)
+        return Vector(x, y, z)
 
 
 class Cuboid:
@@ -89,12 +89,12 @@ class Cuboid:
         edge_contains(coord): return true if coord is on an edge of the cuboid
     """
 
-    min_corner: Coordinate
-    max_corner: Coordinate
+    min_corner: Vector
+    max_corner: Vector
 
-    __iter_pos: Coordinate
+    __iter_pos: Vector
 
-    def __init__(self, coord1: Coordinate, coord2: Coordinate) -> None:
+    def __init__(self, coord1: Vector, coord2: Vector) -> None:
         self.min_corner, self.max_corner = Cuboid.__get_min_max_corners(coord1, coord2)
 
     def __iter__(self):
@@ -120,24 +120,24 @@ class Cuboid:
     def copy(self) -> "Cuboid":
         return Cuboid(self.min_corner, self.max_corner)
 
-    def size(self) -> Coordinate:
-        return self.max_corner - self.min_corner + Coordinate(1, 1, 1)
+    def size(self) -> Vector:
+        return self.max_corner - self.min_corner + Vector(1, 1, 1)
 
-    def contains(self, coord: Coordinate) -> bool:
+    def contains(self, coord: Vector) -> bool:
         return (
             self.min_corner.x <= coord.x <= self.max_corner.x
             and self.min_corner.y <= coord.y <= self.max_corner.y
             and self.min_corner.z <= coord.z <= self.max_corner.z
         )
 
-    def boundary_contains(self, coord: Coordinate) -> bool:
+    def boundary_contains(self, coord: Vector) -> bool:
         return self.contains(coord) and (
             (coord.x == self.min_corner.x or coord.x == self.max_corner.x)
             or (coord.y == self.min_corner.y or coord.y == self.max_corner.y)
             or (coord.z == self.min_corner.z or coord.z == self.max_corner.z)
         )
 
-    def edge_contains(self, coord: Coordinate):
+    def edge_contains(self, coord: Vector):
         if not self.contains(coord):
             return False
         x_valid = coord.x == self.min_corner.x or coord.x == self.max_corner.x
@@ -148,13 +148,13 @@ class Cuboid:
         return (x_valid and z_valid) or (y_valid and z_valid)
 
     @staticmethod
-    def __get_min_max_corners(coord1: "Coordinate", coord2: "Coordinate"):
-        min_coord = Coordinate(
+    def __get_min_max_corners(coord1: "Vector", coord2: "Vector"):
+        min_coord = Vector(
             min([coord1.x, coord2.x]),
             min([coord1.y, coord2.y]),
             min([coord1.z, coord2.z]),
         )
-        max_coord = Coordinate(
+        max_coord = Vector(
             max([coord1.x, coord2.x]),
             max([coord1.y, coord2.y]),
             max([coord1.z, coord2.z]),
@@ -251,10 +251,10 @@ class Palette:
 class BlockPosition:
     """For use in StructureBlocks. Stores block position and integer state from Palette."""
 
-    pos: Coordinate
+    pos: Vector
     state: int  # from Palette
 
-    def __init__(self, pos: Coordinate, state: int) -> None:
+    def __init__(self, pos: Vector, state: int) -> None:
         self.pos = pos.copy()
         self.state = state
 
@@ -285,9 +285,9 @@ class StructureBlocks:
             Get NBT file object representing the structure. input True to make it void the full cuboid when loading in MC
         get_block_state(pos) -> BlockData:
             Get corresponding BlockData from palette
-        get_max_coords(include_air=True) -> Coordinate:
+        get_max_coords(include_air=True) -> Vector:
             Get max x,y,z found across all blocks
-        get_min_coords(include_air=True) -> Coordinate:
+        get_min_coords(include_air=True) -> Vector:
             Get min x,y,z found across all blocks
 
     Fill Commands:
@@ -307,15 +307,15 @@ class StructureBlocks:
             Replace all instances of filter_block with fill_block in volume. Use None to target voids.
 
     Update Methods:
-        shift(delta: Coordinate) -> int:
+        shift(delta: Vector) -> int:
             Move entire structure by delta vector
         crop(volume: Cuboid) -> int:
             Remove blocks outside of volume and shift remaining cuboid to align with 0,0,0
-        clone_block(s_pos:Coordinate, t_pos:Coordinate):
+        clone_block(s_pos:Vector, t_pos:Vector):
             Clones a single block from one pos to another.
-        clone(volume: Cuboid, dest: Coordinate):
+        clone(volume: Cuboid, dest: Vector):
             Clone blocks from self in source volume. Target volume is aligned to dest. Overlap not allowed.
-        clone_structure(other: "StructureBlocks", dest: Coordinate):
+        clone_structure(other: "StructureBlocks", dest: Vector):
             Clone another StructureBlocks object into this one. Target volume is aligned to dest.
         pressurize() -> int:
             Replace all voids with air blocks
@@ -353,7 +353,7 @@ class StructureBlocks:
             self.__pressurize_list(blocks_to_write, Cuboid(min_coords, max_coords))
 
         structure_file = NBTFile()
-        size = max_coords + Coordinate(1, 1, 1)
+        size = max_coords + Vector(1, 1, 1)
         structure_file.tags.append(size.get_nbt("size"))
         structure_file.tags.append(TAG_List(name="entities", type=TAG_Compound))
         nbt_blocks = TAG_List(name="blocks", type=TAG_Compound)
@@ -364,17 +364,17 @@ class StructureBlocks:
         structure_file.tags.append(TAG_Int(name="DataVersion", value=3218))
         return structure_file
 
-    def get_block_state(self, pos: Coordinate) -> BlockData:
+    def get_block_state(self, pos: Vector) -> BlockData:
         """Get block name and properties at pos"""
         block = self.__get_block(pos)
         if block is None:
             return None
         return self.palette[block.state]
 
-    def __get_block(self, pos: Coordinate) -> BlockPosition:
+    def __get_block(self, pos: Vector) -> BlockPosition:
         return next((item for item in self.blocks if item.pos == pos), None)
 
-    def set_block(self, pos: Coordinate, block: BlockData) -> bool:
+    def set_block(self, pos: Vector, block: BlockData) -> bool:
         """Update block at pos. Remove if block is None. Returns True if an update was made."""
         if block is None:
             return self.__remove_block(pos)
@@ -392,7 +392,7 @@ class StructureBlocks:
         else:
             return False
 
-    def __remove_block(self, pos: Coordinate) -> bool:
+    def __remove_block(self, pos: Vector) -> bool:
         init_count = len(self.blocks)
         self.blocks = [x for x in self.blocks if x.pos != pos]
         return len(self.blocks) != init_count
@@ -402,10 +402,10 @@ class StructureBlocks:
         self.palette.try_append(new_block)
         return self.palette.get_state(new_block)
 
-    def get_max_coords(self, include_air=True) -> Coordinate:
+    def get_max_coords(self, include_air=True) -> Vector:
         """get max x,y,z of smallest cuboid containing all blocks"""
         if not any(self.blocks):
-            return Coordinate(0, 0, 0)
+            return Vector(0, 0, 0)
         filter_state = None if include_air else self.palette.try_get_state(AIR_BLOCK)
         first = self.blocks[0].pos
         x, y, z = first.x, first.y, first.z
@@ -416,12 +416,12 @@ class StructureBlocks:
                 y = block.pos.y
             if block.pos.z > z:
                 z = block.pos.z
-        return Coordinate(x, y, z)
+        return Vector(x, y, z)
 
-    def get_min_coords(self, include_air=True) -> Coordinate:
+    def get_min_coords(self, include_air=True) -> Vector:
         """get min x,y,z of smallest cuboid containing all blocks"""
         if not any(self.blocks):
-            return Coordinate(0, 0, 0)
+            return Vector(0, 0, 0)
         filter_state = None if include_air else self.palette.try_get_state(AIR_BLOCK)
         first = self.blocks[0].pos
         x, y, z = first.x, first.y, first.z
@@ -432,17 +432,17 @@ class StructureBlocks:
                 y = block.pos.y
             if block.pos.z < z:
                 z = block.pos.z
-        return Coordinate(x, y, z)
+        return Vector(x, y, z)
 
-    def shift(self, delta: Coordinate) -> int:
+    def shift(self, delta: Vector) -> int:
         """Add delta to every block's pos"""
-        if delta == Coordinate(0, 0, 0):
+        if delta == Vector(0, 0, 0):
             return 0
         for block in self.blocks:
             block.pos.add(delta)
         return len(self.blocks)
 
-    def clone_structure(self, other: "StructureBlocks", dest: Coordinate):
+    def clone_structure(self, other: "StructureBlocks", dest: Vector):
         """Completely clone other structure to this one. dest defines minimum x,y,z corner of target volume"""
         count = 0
         for otherblock in other.blocks:
@@ -451,7 +451,7 @@ class StructureBlocks:
                 count += 1
         return count
 
-    def clone(self, source_volume: Cuboid, dest: Coordinate) -> int:
+    def clone(self, source_volume: Cuboid, dest: Vector) -> int:
         """Clones blocks from source_volume. dest defines minimum x,y,z of target volume which must not overlap source."""
         if StructureBlocks.__does_clone_dest_overlap(source_volume, dest):
             raise ValueError("The source and destination volumes cannot overlap")
@@ -464,7 +464,7 @@ class StructureBlocks:
                     count += 1
         return count
 
-    def clone_block(self, s_pos: Coordinate, t_pos: Coordinate):
+    def clone_block(self, s_pos: Vector, t_pos: Vector):
         """Clone a single block from s_pos to t_pos"""
         block = self.__get_block(s_pos)
         if block is None:
@@ -524,7 +524,7 @@ class StructureBlocks:
         count = 0
         size = volume.size()
         if size.x > 2 and size.y > 2 and size.z > 2:
-            shift = Coordinate(1, 1, 1)
+            shift = Vector(1, 1, 1)
             interior_min = volume.min_corner + shift
             interior_max = volume.max_corner - shift
             count += self.fill(Cuboid(interior_min, interior_max), AIR_BLOCK)
@@ -691,12 +691,12 @@ class StructureBlocks:
         return count
 
     @staticmethod
-    def __does_clone_dest_overlap(source_volume: Cuboid, dest: Coordinate) -> bool:
+    def __does_clone_dest_overlap(source_volume: Cuboid, dest: Vector) -> bool:
         """Check if a cuboid of same dimensions as source can be created at dest without overlapping source
 
         Returns:
             bool: True if overlap would occur
         """
-        min_pos = source_volume.min_corner + Coordinate(1, 1, 1) - source_volume.size()
+        min_pos = source_volume.min_corner + Vector(1, 1, 1) - source_volume.size()
         max_pos = source_volume.max_corner
         return Cuboid(min_pos, max_pos).contains(dest)
