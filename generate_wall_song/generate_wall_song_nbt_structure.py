@@ -48,14 +48,3 @@ def encode_song(
     structure: nbth.StructureBlocks, channels: list[Channel], max_height: int
 ):
     pass
-
-
-# testing
-if __name__ == "__main__":
-    save_to_path = "./output/"
-    filename = "tall1.nbt"
-    structure = nbth.StructureBlocks()
-    structure.set_block(nbth.Coordinate(0, 0, 0), blocks.floor_building)
-    structure.set_block(nbth.Coordinate(0, 1, 0), blocks.light_source)
-    structure.set_block(nbth.Coordinate(0, 383, 0), blocks.redstone_slab)
-    structure.get_nbt().write_file(filename=save_to_path + filename)
