@@ -1,5 +1,5 @@
-#todo write actual unit tests
-from nbt_structure_helper import StructureBlocks, Vector, Cuboid, AIR_BLOCK
+# todo write actual unit tests
+from nbt_structure_helper import StructureBlocks, Vector, LineSegment, Cuboid, AIR_BLOCK
 import block_settings as blocks
 
 
@@ -121,6 +121,46 @@ def test_fills(save_to_path, name, block1, block2):
     f_structure.get_nbt().write_file(filename=save_to_path + name)
 
 
+def cuboid_corners(save_to_path, name, dist: Vector, block1, block2):
+    c0 = Vector(0, 0, 0)
+    dest_vectors = []
+    dest_vectors.append(Vector(dist.x, dist.y, dist.z))
+    dest_vectors.append(Vector(dist.x, dist.y, -dist.z))
+    dest_vectors.append(Vector(dist.x, -dist.y, dist.z))
+    dest_vectors.append(Vector(dist.x, -dist.y, -dist.z))
+    dest_vectors.append(Vector(-dist.x, dist.y, dist.z))
+    dest_vectors.append(Vector(-dist.x, dist.y, -dist.z))
+    dest_vectors.append(Vector(-dist.x, -dist.y, dist.z))
+    dest_vectors.append(Vector(-dist.x, -dist.y, -dist.z))
+    f_structure = StructureBlocks()
+
+    for vec in dest_vectors:
+        f_structure.fill_line(LineSegment(dest_vectors), block1)
+        
+    f_structure.set_block(c0, block2)
+
+    f_structure.get_nbt().write_file(filename=save_to_path + name)
+
+
+def connect_the_dots(save_to_path, name, block1, block2):
+    c0 = Vector(0, 0, 0)
+    dest_vectors = []
+    dest_vectors.append(Vector(0,0,0 ))
+    dest_vectors.append(Vector(0,10,0 ))
+    dest_vectors.append(Vector(0,10,10 ))
+    dest_vectors.append(Vector(10,0,0 ))
+    dest_vectors.append(Vector(10,5,5 ))
+    dest_vectors.append(Vector(7,7,7 ))
+    f_structure = StructureBlocks()
+
+    for vec in dest_vectors:
+        f_structure.fill_line(LineSegment(dest_vectors), block1)
+        
+    f_structure.set_block(c0, block2)
+
+    f_structure.get_nbt().write_file(filename=save_to_path + name)
+
+
 # testing
 if __name__ == "__main__":
     save_to_path = "./output/"
@@ -132,3 +172,5 @@ if __name__ == "__main__":
     test_clone(save_to_path, "c.nbt", blocks.floor_building, blocks.redstone_slab)
     christmas_tree(save_to_path, "tree.nbt", 9, blocks.piston_payload)
     test_fills(save_to_path, "fill.nbt", blocks.piston_payload, blocks.floor_building)
+    cuboid_corners(save_to_path, "line.nbt", Vector(3,3,3), blocks.piston_payload, blocks.light_source)
+    connect_the_dots(save_to_path, "lines.nbt", blocks.piston_payload, blocks.light_source)
