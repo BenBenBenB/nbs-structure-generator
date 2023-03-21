@@ -1,5 +1,5 @@
 from process_song import TickChannels, Channel
-import nbt_structure_helper as nbth
+import nbt_helper.nbt_structure_helper as nbth
 import block_settings as blocks
 
 

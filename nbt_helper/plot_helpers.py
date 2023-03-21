@@ -1,6 +1,6 @@
 # todo: ellipsoids, spline curves, planes
 from math import floor
-from nbt.nbt import *
+from nbt.nbt import TAG_List, TAG_Int
 
 
 class Vector:
