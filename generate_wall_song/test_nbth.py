@@ -1,5 +1,6 @@
 # todo write actual unit tests
-from nbt_structure_helper import StructureBlocks, Vector, LineSegment, Cuboid, AIR_BLOCK
+from nbt_helper.nbt_structure_helper import StructureBlocks, AIR_BLOCK
+from nbt_helper.plot_helpers import Vector, LineSegment, Cuboid
 import block_settings as blocks
 
 

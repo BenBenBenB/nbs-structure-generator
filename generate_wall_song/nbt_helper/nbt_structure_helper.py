@@ -1,5 +1,5 @@
 from nbt.nbt import *
-from plot_helpers import LineSegment, Vector, Cuboid
+from nbt_helper.plot_helpers import LineSegment, Vector, Cuboid
 
 AIR_BLOCK_NAME = "minecraft:air"
 
@@ -13,7 +13,7 @@ class BlockData:
             self.name = "minecraft:" + item_id
         else:
             self.name = item_id
-        self.properties = props
+        self.properties = props.copy()
 
     def __eq__(self, __o: object) -> bool:
         if __o is None:
@@ -21,6 +21,9 @@ class BlockData:
         return self.name == __o.name and sorted(self.properties) == sorted(
             __o.properties
         )
+
+    def copy(self):
+        return BlockData(self.name, self.properties)
 
     def get_nbt(self) -> TAG_Compound:
         nbt_block_state = TAG_Compound()
@@ -536,7 +539,7 @@ class StructureBlocks:
                 count += 1
         return count
 
-    def fill_line(self, points:LineSegment, fill_block: BlockData) -> int:
+    def fill_line(self, points: LineSegment, fill_block: BlockData) -> int:
         """Draw a 1 block wide straight line connecting each point to the next.
 
         Returns:
