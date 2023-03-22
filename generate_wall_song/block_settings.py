@@ -2,9 +2,9 @@ from nbt_helper.nbt_structure_helper import BlockData
 
 air: BlockData = BlockData("minecraft:air")
 redstone_wire: BlockData = BlockData("minecraft:redstone_wire")
-redstone_wire_neutral: BlockData = BlockData(
+redstone_wire_connecting: BlockData = BlockData(
     "minecraft:redstone_wire",
-    [("east", "none"), ("north", "none"), ("south", "none"), ("west", "none")],
+    [("east", "side"), ("north", "side"), ("south", "side"), ("west", "side")],
 )
 redstone_torch: BlockData = BlockData("minecraft:redstone_torch")
 repeater: BlockData = BlockData("minecraft:repeater")

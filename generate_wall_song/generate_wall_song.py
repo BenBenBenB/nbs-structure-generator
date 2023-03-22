@@ -1,14 +1,15 @@
 from process_song import process_song
+from nbt_helper.nbt_structure_helper import BlockData
 from generate_wall_song_nbt_structure import (
     generate_wall_song_nbt_structure,
-    InstrumentBlockPhysics,
+    InstrumentBlock,
 )
 
 
 def generate_wall_sequencer(
     nbs_file_path: str,
     save_to_path: str,
-    instruments: list[InstrumentBlockPhysics],
+    instruments: list[InstrumentBlock],
     max_height: int = 380,
 ) -> None:
     channels, tickchannels = process_song(nbs_file_path)
@@ -17,23 +18,28 @@ def generate_wall_sequencer(
     )
 
 
-BLOCKS = []
-BLOCKS.append(InstrumentBlockPhysics(0, "minecraft:dirt", False, True))
-BLOCKS.append(InstrumentBlockPhysics(1, "minecraft:oak_planks", False, True))
-BLOCKS.append(InstrumentBlockPhysics(2, "minecraft:stone", False, True))
-BLOCKS.append(InstrumentBlockPhysics(3, "minecraft:sand", True, True))
-BLOCKS.append(InstrumentBlockPhysics(4, "minecraft:glass", False, False))
-BLOCKS.append(InstrumentBlockPhysics(5, "minecraft:brown_wool", False, True))
-BLOCKS.append(InstrumentBlockPhysics(6, "minecraft:clay", False, True))
-BLOCKS.append(InstrumentBlockPhysics(7, "minecraft:gold_block", False, True))
-BLOCKS.append(InstrumentBlockPhysics(8, "minecraft:packed_ice", False, True))
-BLOCKS.append(InstrumentBlockPhysics(9, "minecraft:bone_block", False, True))
-BLOCKS.append(InstrumentBlockPhysics(10, "minecraft:iron_block", False, True))
-BLOCKS.append(InstrumentBlockPhysics(11, "minecraft:soul_sand", False, True))
-BLOCKS.append(InstrumentBlockPhysics(12, "minecraft:pumpkin", False, True))
-BLOCKS.append(InstrumentBlockPhysics(13, "minecraft:emerald_block", False, True))
-BLOCKS.append(InstrumentBlockPhysics(14, "minecraft:hay_block", False, True))
-BLOCKS.append(InstrumentBlockPhysics(15, "minecraft:glowstone", False, False))
+BLOCKS = [
+    (InstrumentBlock(0, "harp", BlockData("minecraft:dirt"), False, True)),
+    (InstrumentBlock(1, "bass", BlockData("minecraft:oak_planks"), False, True)),
+    (InstrumentBlock(2, "basedrum", BlockData("minecraft:stone"), False, True)),
+    (InstrumentBlock(3, "snare", BlockData("minecraft:sand"), True, True)),
+    (InstrumentBlock(4, "hat", BlockData("minecraft:glass"), False, False)),
+    (InstrumentBlock(5, "guitar", BlockData("minecraft:brown_wool"), False, True)),
+    (InstrumentBlock(6, "flute", BlockData("minecraft:clay"), False, True)),
+    (InstrumentBlock(7, "bell", BlockData("minecraft:gold_block"), False, True)),
+    (InstrumentBlock(8, "chime", BlockData("minecraft:packed_ice"), False, True)),
+    (InstrumentBlock(9, "xylophone", BlockData("minecraft:bone_block"), False, True)),
+    (
+        InstrumentBlock(
+            10, "iron_xylophone", BlockData("minecraft:iron_block"), False, True
+        )
+    ),
+    (InstrumentBlock(11, "cow_bell", BlockData("minecraft:soul_sand"), False, True)),
+    (InstrumentBlock(12, "didgeridoo", BlockData("minecraft:pumpkin"), False, True)),
+    (InstrumentBlock(13, "bit", BlockData("minecraft:emerald_block"), False, True)),
+    (InstrumentBlock(14, "banjo", BlockData("minecraft:hay_block"), False, True)),
+    (InstrumentBlock(15, "pling", BlockData("minecraft:glowstone"), False, False)),
+]
 
 if __name__ == "__main__":
     nbs_file_path = "songs/test.nbs"

@@ -30,7 +30,7 @@ class BlockData:
         if any(self.properties):
             block_properties = TAG_Compound(name="Properties")
             for prop in self.properties:
-                block_properties.tags.append(TAG_String(name=prop[0], value=prop[1]))
+                block_properties.tags.append(TAG_String(name=prop[0], value=str(prop[1])))
             nbt_block_state.tags.append(block_properties)
         nbt_block_state.tags.append(TAG_String(name="Name", value=self.name))
         return nbt_block_state

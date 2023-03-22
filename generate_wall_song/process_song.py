@@ -140,6 +140,9 @@ class Channel:
 
     def __lt__(self, __o: object):
         return self.chord < __o.chord
+    
+    def __len__(self):
+        return len(self.chord)
 
 
 # Stores list of all channels that should play on a given tick
