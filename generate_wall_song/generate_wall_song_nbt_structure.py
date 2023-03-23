@@ -32,23 +32,20 @@ def generate_wall_song_nbt_structure(
     tickchannels: list[TickChannels],
     max_height: int = 384,
 ):
-    piston_height_for_noise = 20
     channel_count_1, channel_count_2 = determine_channel_counts(len(channels))
     ordered_channels = reorder_channels(channels)
     channels1 = ordered_channels[0:channel_count_1]
     channels2 = ordered_channels[channel_count_1 + 1 :] if channel_count_2 > 0 else []
 
     # build layer by layer and structure by structure.
-    structure1 = build_sequencer(
-        instruments, channels1, tickchannels, piston_height_for_noise, max_height
-    )
-    set_up_controls(structure1, piston_height_for_noise)
+    structure1 = build_sequencer(instruments, channels1, tickchannels, True, max_height)
+    set_up_controls(structure1)
 
-    # if we needed the space, generate a 2nd 1 and place behind player listening spot.
+    # if we needed the space, generate a 2nd one and place behind player listening spot.
     if any(channels2):
         offset = nbth.Vector(0, 0, -3 - len(channels2))
         structure2 = build_sequencer(
-            instruments, channels2, tickchannels, piston_height_for_noise, max_height
+            instruments, channels2, tickchannels, False, max_height
         )
         structure1.clone_structure(structure2, offset)
 
@@ -85,12 +82,12 @@ def build_sequencer(
     instruments: list[InstrumentBlock],
     channels: list[Channel],
     tickchannels: TickChannels,
-    piston_height: int,
+    is_south_half: bool,
     max_height: int,
 ) -> nbth.StructureBlocks:
     structure = nbth.StructureBlocks()
-    build_base(structure, instruments, channels, piston_height)
-    encode_song(structure, tickchannels, max_height)
+    build_base(structure, instruments, channels)
+    encode_song(structure, channels, tickchannels, is_south_half, max_height)
 
     return structure
 
@@ -99,7 +96,6 @@ def build_base(
     structure: nbth.StructureBlocks,
     instruments: list[InstrumentBlock],
     channels: list[Channel],
-    piston_height: int,
 ):
     """build section from bottom up to just before note encoding"""
     # layers 0 - 4 without note blocks. align 1st channel's walls with 0,y,0
@@ -129,6 +125,11 @@ def build_base(
 
     for z, channel in enumerate(channels):
         build_chord(structure, instruments, channel, z)
+    curr_vol = Cuboid(Vector(3, 2, 0), Vector(5, 2, max_z))
+    structure.fill_keep(curr_vol, blocks.floor_building)
+    curr_vol = Cuboid(Vector(3, 1, -1), Vector(5, 1, -3))
+    structure.fill(curr_vol, blocks.floor_building)
+    structure.set_block(Vector(4, 1, -2), blocks.light_source)
 
 
 def build_chord(
@@ -160,7 +161,7 @@ def build_chord(
         structure.set_block(Vector(3, 2, z), block[0].block_data)
         structure.set_block(Vector(3, 3, z), block[0].get_note_block(block[1]))
         return
-        
+
     # else:   build big chord
     skip_block_4 = False
     if len(notes_in_chord) >= 4 and notes_in_chord[4][0].gravity == True:
@@ -274,12 +275,107 @@ def build_chord(
 
 
 def encode_song(
-    structure: nbth.StructureBlocks, channels: list[Channel], max_height: int
+    structure: nbth.StructureBlocks,
+    channels: list[Channel],
+    tickchannels: TickChannels,
+    is_south_half: bool,
+    max_height: int,
 ):
-    """place pistons that will activate walls"""
-    pass
+    """place pistons that will update walls"""
+    channel_positions = get_channel_positions(channels)
+    starting_height = 20
+    repeating_blocks = get_piston_redstone_line(len(channels), is_south_half)
+    max_tick = max([t.tick for t in tickchannels])
+    # fill middle section up to height, then add to sides to expand
+    curr_tick = 0
+    curr_y = starting_height
+    while max_height >= (curr_y + 1) and max_tick >= curr_tick:
+        structure.clone_structure(repeating_blocks, Vector(3, curr_y, 0))
+        # on beat (even redstone tick)
+        tick = next((item for item in tickchannels if item.tick == curr_tick), None)
+        if tick is not None:
+            place_pistons(
+                structure,
+                2,
+                curr_y,  # yum
+                tick.channels,
+                channel_positions,
+                blocks.piston_west,
+            )
+        curr_tick += 1
+        # on eighth (odd redstone tick)
+        tick = next((item for item in tickchannels if item.tick == curr_tick), None)
+        if tick is not None:
+            place_pistons(
+                structure,
+                4,
+                curr_y,
+                tick.channels,
+                channel_positions,
+                blocks.piston_east,
+            )
+        curr_tick += 1
+        curr_y += 2
+
+    # add walls and blocks that go next to walls
+    temp_structure = nbth.StructureBlocks()
+    curr_volume = Cuboid(Vector(0, 4, -1), Vector(0, curr_y, -1))
+    temp_structure.fill(curr_volume, blocks.neutral_building)
+    curr_volume = Cuboid(Vector(0, 4, len(channels)), Vector(0, curr_y, len(channels)))
+    temp_structure.fill(curr_volume, blocks.neutral_building)
+    curr_volume = Cuboid(Vector(0, 5, 0), Vector(0, curr_y - 1, len(channels) - 1))
+    temp_structure.fill(curr_volume, blocks.wall_ns)
+    curr_volume = Cuboid(Vector(0, curr_y, 0), Vector(0, curr_y, len(channels) - 1))
+    temp_structure.fill(curr_volume, blocks.wall_ns_top)
+
+    structure.clone_structure(temp_structure, Vector(0,0,0))
+    structure.clone_structure(temp_structure, Vector(6,0,0))
+    
 
 
-def set_up_controls(structure: nbth.StructureBlocks, piston_height: int):
+# goal: create list so we can input channel id as index, get back block's z
+def get_channel_positions(channels: list[Channel]):
+    channel_positions = {}
+    for i in range(max((channel.id for channel in channels)) + 1):
+        pos = next((j for j, chan in enumerate(channels) if chan.id == i), None)
+        channel_positions[i] = pos
+    return channel_positions
+
+
+def place_pistons(
+    structure: nbth.StructureBlocks,
+    x: int,
+    y: int,
+    channels_to_place: list[int],
+    channel_pos: dict,
+    block: nbth.BlockData,
+):
+    for chan_id in channels_to_place:
+        if channel_pos.get(chan_id, None) is not None:
+            structure.set_block(Vector(x, y, channel_pos[chan_id]), block)
+
+
+def get_piston_redstone_line(length: int, is_south_half: bool):
+    # main line
+    p_structure = nbth.StructureBlocks()
+    curr_vol = Cuboid(Vector(0, 0, 0), Vector(0, 0, length - 1))
+    p_structure.fill(curr_vol, blocks.redstone_line_main)
+    curr_vol = Cuboid(Vector(0, 1, 0), Vector(0, 1, length - 1))
+    p_structure.fill(curr_vol, blocks.redstone_wire_connecting)
+    # torch towers
+    if is_south_half or length >= 15:
+        p_structure.set_block(Vector(0, 0, -1), blocks.redstone_line_torch)
+        p_structure.set_block(Vector(0, 0, -2), blocks.redstone_torch_north)
+        p_structure.set_block(Vector(0, 1, -2), blocks.redstone_line_torch)
+        p_structure.set_block(Vector(0, 1, -1), blocks.redstone_torch_south)
+    if not is_south_half or length >= 15:
+        p_structure.set_block(Vector(0, 0, length), blocks.redstone_line_torch)
+        p_structure.set_block(Vector(0, 0, length + 1), blocks.redstone_torch_south)
+        p_structure.set_block(Vector(0, 1, length + 1), blocks.redstone_line_torch)
+        p_structure.set_block(Vector(0, 1, length), blocks.redstone_torch_north)
+    return p_structure
+
+
+def set_up_controls(structure: nbth.StructureBlocks):
     """feed redstone signals from start, to each segment, and back to start"""
     pass

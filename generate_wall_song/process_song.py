@@ -7,7 +7,9 @@ def process_song(songpath: str):
     all_channels = get_channels(song)
     ticks = []
     for tick, chord in song:
-        v_chord = VanillaChord.create_from_nbs_chord(chord)
+        v_chord = VanillaChord.create_from_nbs_chord(
+            [note for note in chord if note.instrument <= 15 and 33 <= note.key <= 57]
+        )
         channels_on_tick = get_channels_in_chord(all_channels, v_chord)
         ticks.append(TickChannels(tick, channels_on_tick))
     return all_channels, ticks
@@ -16,7 +18,9 @@ def process_song(songpath: str):
 def get_distinct_chords(song: pynbs.File):
     distinct_chords = []  # instrument, key
     for _, chord in song:
-        v_chord = VanillaChord.create_from_nbs_chord(chord)
+        v_chord = VanillaChord.create_from_nbs_chord(
+            [note for note in chord if note.instrument <= 15 and 33 <= note.key <= 57]
+        )
         if not any(x == v_chord for x in distinct_chords):
             distinct_chords.append(v_chord)
     return distinct_chords
@@ -140,7 +144,7 @@ class Channel:
 
     def __lt__(self, __o: object):
         return self.chord < __o.chord
-    
+
     def __len__(self):
         return len(self.chord)
 

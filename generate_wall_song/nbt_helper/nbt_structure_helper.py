@@ -59,7 +59,7 @@ class Palette:
 
     def __init__(self, block_data: list[BlockData] = []) -> None:
         self.__blocks = []
-        self.extend(block_data)
+        self.extend(block_data.copy())
 
     def __iter__(self):
         return iter(self.__blocks)
@@ -72,6 +72,9 @@ class Palette:
             raise ValueError("Palette cannont contain None")
         if block not in self.__blocks:
             self.__blocks.append(block)
+
+    def copy(self) -> None:
+        return Palette(self.__blocks)
 
     def extend(self, blocks: list[BlockData]) -> None:
         for block in blocks:
