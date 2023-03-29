@@ -39,7 +39,11 @@ def generate_wall_song_nbt_structure(
 
     # build layer by layer and structure by structure.
     structure1 = build_sequencer(instruments, channels1, tickchannels, True, max_height)
-    set_up_controls(structure1)
+    place_starter(structure1)
+    # listening zone
+    curr_vol = Cuboid(Vector(0, 1, -1), Vector(6, 1, -3))
+    structure1.fill_keep(curr_vol, blocks.floor_building)
+    structure1.set_block(Vector(3, 1, -2), blocks.light_source)
 
     # if we needed the space, generate a 2nd one and place behind player listening spot.
     if any(channels2):
@@ -86,7 +90,7 @@ def build_sequencer(
     max_height: int,
 ) -> nbth.NbtStructure:
     structure = nbth.NbtStructure()
-    build_base(structure, instruments, channels)
+    build_base(structure, instruments, channels, is_south_half)
     encode_song(structure, channels, tickchannels, is_south_half, max_height)
 
     return structure
@@ -96,6 +100,7 @@ def build_base(
     structure: nbth.NbtStructure,
     instruments: list[InstrumentBlock],
     channels: list[Channel],
+    is_south_half: bool,
 ):
     """build section from bottom up to just before note encoding"""
     # layers 0 - 4 without note blocks. align 1st channel's walls with 0,y,0
@@ -115,21 +120,21 @@ def build_base(
         structure.set_block(Vector(0, 3, z), curr_block)
 
     curr_vol = Cuboid(Vector(2, 2, 0), Vector(2, 2, max_z))
-    structure.fill(curr_vol, blocks.observer_down)
+    structure.fill(curr_vol, blocks.get_observer("down"))
     curr_vol = Cuboid(Vector(1, 3, 0), Vector(1, 3, max_z))
-    structure.fill(curr_vol, blocks.observer_west)
+    structure.fill(curr_vol, blocks.get_observer("west"))
     curr_vol = Cuboid(Vector(0, 4, 0), Vector(0, 4, max_z))
-    structure.fill(curr_vol, blocks.observer_up)
+    structure.fill(curr_vol, blocks.get_observer("up"))
     curr_vol = Cuboid(Vector(6, 3, 0), Vector(6, 4, max_z))
-    structure.fill(curr_vol, blocks.observer_up)
+    structure.fill(curr_vol, blocks.get_observer("up"))
 
+    # fill in note blocks and floor around them
     for z, channel in enumerate(channels):
         build_chord(structure, instruments, channel, z)
     curr_vol = Cuboid(Vector(3, 2, 0), Vector(5, 2, max_z))
     structure.fill_keep(curr_vol, blocks.floor_building)
-    curr_vol = Cuboid(Vector(3, 1, -1), Vector(5, 1, -3))
-    structure.fill(curr_vol, blocks.floor_building)
-    structure.set_block(Vector(4, 1, -2), blocks.light_source)
+
+    bus_to_torch_towers(structure, max_z, is_south_half)
 
 
 def build_chord(
@@ -274,6 +279,68 @@ def build_chord(
         return
 
 
+def bus_to_torch_towers(structure: nbth.NbtStructure, max_z: int, is_south_half: bool):
+    # bus signal to start of torch lines
+    if max_z < 15:
+        curr_vol = Cuboid(Vector(4, 19, -1), Vector(5, 19, -1))
+        structure.fill(curr_vol, blocks.redstone_line_torch)
+        curr_vol = Cuboid(Vector(4, 20, -1), Vector(5, 20, -1))
+        structure.fill(curr_vol, blocks.redstone_wire_connecting)
+    else:
+        # bus between torch towers
+        curr_vol = Cuboid(Vector(5, 18, 0), Vector(5, 18, max_z))
+        structure.fill(curr_vol, blocks.redstone_slab)
+        curr_vol = Cuboid(Vector(5, 19, 0), Vector(5, 19, max_z))
+        structure.fill(curr_vol, blocks.redstone_wire_connecting)
+        dir = "north" if is_south_half else "south"
+        z_pos = (max_z + 3) // 3
+        structure.set_block(Vector(5, 19, z_pos), blocks.get_repeater(dir, 1))
+        structure.set_block(Vector(5, 19, z_pos * 2), blocks.get_repeater(dir, 1))
+        # start of torch lines
+        curr_vol = Cuboid(Vector(4, 19, max_z + 1), Vector(5, 19, max_z + 1))
+        structure.fill(curr_vol, blocks.redstone_line_torch)
+        curr_vol = Cuboid(Vector(4, 20, max_z + 1), Vector(5, 20, max_z + 1))
+        structure.fill(curr_vol, blocks.redstone_wire_connecting)
+        curr_vol = Cuboid(Vector(4, 19, -1), Vector(5, 19, -1))
+        structure.fill(curr_vol, blocks.redstone_line_torch)
+        curr_vol = Cuboid(Vector(4, 20, -1), Vector(5, 20, -1))
+        structure.fill(curr_vol, blocks.redstone_wire_connecting)
+        if is_south_half:
+            structure.set_block(Vector(4, 20, -1), blocks.get_repeater("east", 2))
+        else:
+            structure.set_block(
+                Vector(4, 20, max_z + 1), blocks.get_repeater("east", 2)
+            )
+            structure.set_block(Vector(4, 20, max_z + 3), blocks.air)
+
+
+def place_starter(structure: nbth.NbtStructure):
+    starter = nbth.NbtStructure()
+    starter.set_block(Vector(0, 0, 0), blocks.get_button("stone", "south", "ceiling"))
+    starter.set_block(Vector(0, 1, 0), blocks.redstone_line_start)
+    starter.set_block(Vector(0, 2, 0), blocks.get_redstone_torch(True, None))
+    starter.set_block(Vector(0, 3, 0), blocks.redstone_line_start)
+    starter.set_block(Vector(0, 4, 0), blocks.get_redstone_torch(False, None))
+    starter.set_block(Vector(0, 5, 0), blocks.redstone_line_start)
+    starter.set_block(Vector(0, 6, 0), blocks.get_redstone_torch(True, None))
+    starter.set_block(Vector(0, 7, 0), blocks.redstone_line_start)
+    starter.set_block(Vector(0, 8, 0), blocks.get_redstone_torch(False, None))
+    starter.set_block(Vector(0, 9, 0), blocks.redstone_line_start)
+    starter.set_block(Vector(0, 10, 0), blocks.get_sticky_piston("up"))
+    starter.set_block(Vector(0, 11, 0), blocks.get_observer("west"))
+    starter.set_block(Vector(1, 11, 0), blocks.redstone_slab)
+    starter.set_block(Vector(2, 11, 0), blocks.redstone_slab)
+    starter.set_block(Vector(1, 12, 0), blocks.get_repeater("west", 2))
+    starter.set_block(Vector(2, 12, 0), blocks.redstone_wire_connecting)
+
+    starter.set_block(Vector(1, 8, 0), blocks.redstone_line_start)
+    starter.set_block(Vector(1, 9, 0), blocks.get_comparator("east", "compare"))
+    starter.set_block(Vector(2, 9, 0), blocks.get_dropper("up"))
+    starter.set_block(Vector(2, 10, 0), blocks.get_dropper("down"))
+
+    structure.clone_structure(starter, Vector(3, 7, -2))
+
+
 def encode_song(
     structure: nbth.NbtStructure,
     channels: list[Channel],
@@ -300,7 +367,7 @@ def encode_song(
                 curr_y,  # yum
                 tick.channels,
                 channel_positions,
-                blocks.piston_west,
+                blocks.get_piston("west"),
             )
         curr_tick += 1
         # on eighth (odd redstone tick)
@@ -312,7 +379,7 @@ def encode_song(
                 curr_y,
                 tick.channels,
                 channel_positions,
-                blocks.piston_east,
+                blocks.get_piston("east"),
             )
         curr_tick += 1
         curr_y += 2
@@ -328,9 +395,8 @@ def encode_song(
     curr_volume = Cuboid(Vector(0, curr_y, 0), Vector(0, curr_y, len(channels) - 1))
     temp_structure.fill(curr_volume, blocks.wall_ns_top)
 
-    structure.clone_structure(temp_structure, Vector(0,0,0))
-    structure.clone_structure(temp_structure, Vector(6,0,0))
-    
+    structure.clone_structure(temp_structure, Vector(0, 0, 0))
+    structure.clone_structure(temp_structure, Vector(6, 0, 0))
 
 
 # goal: create list so we can input channel id as index, get back block's z
@@ -365,14 +431,22 @@ def get_piston_redstone_line(length: int, is_south_half: bool):
     # torch towers
     if is_south_half or length >= 15:
         p_structure.set_block(Vector(0, 0, -1), blocks.redstone_line_torch)
-        p_structure.set_block(Vector(0, 0, -2), blocks.redstone_torch_north)
+        p_structure.set_block(
+            Vector(0, 0, -2), blocks.get_redstone_torch(True, "north")
+        )
         p_structure.set_block(Vector(0, 1, -2), blocks.redstone_line_torch)
-        p_structure.set_block(Vector(0, 1, -1), blocks.redstone_torch_south)
+        p_structure.set_block(
+            Vector(0, 1, -1), blocks.get_redstone_torch(False, "south")
+        )
     if not is_south_half or length >= 15:
         p_structure.set_block(Vector(0, 0, length), blocks.redstone_line_torch)
-        p_structure.set_block(Vector(0, 0, length + 1), blocks.redstone_torch_south)
+        p_structure.set_block(
+            Vector(0, 0, length + 1), blocks.get_redstone_torch(True, "south")
+        )
         p_structure.set_block(Vector(0, 1, length + 1), blocks.redstone_line_torch)
-        p_structure.set_block(Vector(0, 1, length), blocks.redstone_torch_north)
+        p_structure.set_block(
+            Vector(0, 1, length), blocks.get_redstone_torch(False, "north")
+        )
     return p_structure
 
 

@@ -19,7 +19,11 @@ def get_distinct_chords(song: pynbs.File):
     distinct_chords = []  # instrument, key
     for _, chord in song:
         v_chord = VanillaChord.create_from_nbs_chord(
-            [note for note in chord if note.instrument <= 15 and 33 <= note.key <= 57]
+            [
+                note
+                for note in chord
+                if (0 <= note.instrument <= 15) and (33 <= note.key <= 57)
+            ]
         )
         if not any(x == v_chord for x in distinct_chords):
             distinct_chords.append(v_chord)
