@@ -14,6 +14,12 @@ class Vector:
         self.y = y
         self.z = z
 
+    def __str__(self):
+        return "(%d,%d,%d)" % (self.x, self.y, self.z)
+
+    def __hash__(self) -> int:
+        return hash((self.x, self.y, self.z))
+
     def get_nbt(self, tag_name: str) -> TAG_List:
         x, y, z = self.x, self.y, self.z
         # structures larger than 32x32x32 are allowed, just need to lie about the size

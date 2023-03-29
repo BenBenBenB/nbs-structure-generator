@@ -1,19 +1,18 @@
 # todo write actual unit tests
-from nbt_helper.nbt_structure_helper import StructureBlocks, AIR_BLOCK
+from nbt_helper.nbt_structure_helper import NbtStructure, AIR_BLOCK
 from nbt_helper.plot_helpers import Vector, LineSegment, Cuboid
 import block_settings as blocks
 
 
 def christmas_tree(save_to_path, filename, width, block):
-    t_structure = StructureBlocks()
+    t_structure = NbtStructure()
     step_height = 3
     c1 = Vector(0, 0, 0)
     c2 = Vector(width - 1, step_height - 1, width - 1)
-    count = 0
     while c2.x >= c1.x:
         pvol = Cuboid(c1, c2)
-        count += t_structure.fill(pvol, block)
-        count += t_structure.fill_frame(pvol, None)
+        t_structure.fill(pvol, block)
+        t_structure.fill_frame(pvol, None)
         c1.add(Vector(1, step_height, 1))
         c2.add(Vector(-1, step_height, -1))
     t_structure.shift(Vector(0, 2, 0))
@@ -31,14 +30,13 @@ def create_pyramid_range(save_to_path, base_width_range, block, step_height=1):
 
 
 def create_pyramid(save_to_path, filename, width, block, step_height=1):
-    p_structure = StructureBlocks()
+    p_structure = NbtStructure()
     c1 = Vector(0, 0, 0)
     c2 = Vector(width - 1, step_height - 1, width - 1)
-    count = 0
     while c2.x >= c1.x:
         pvol = Cuboid(c1, c2)
-        count += p_structure.fill(pvol, blocks.light_source)
-        count += p_structure.fill_frame(pvol, block)
+        p_structure.fill(pvol, blocks.light_source)
+        p_structure.fill_frame(pvol, block)
         c1.x, c1.y, c1.z = c1.x + 1, c1.y + step_height, c1.z + 1
         c2.x, c2.y, c2.z = c2.x - 1, c2.y + step_height, c2.z - 1
 
@@ -46,64 +44,62 @@ def create_pyramid(save_to_path, filename, width, block, step_height=1):
 
 
 def test_fill(save_to_path, name, size: int, block1, block2):
-    f_structure = StructureBlocks()
+    f_structure = NbtStructure()
     c1 = Vector(0, 0, 0)
     c2 = Vector(size - 1, size - 1, size - 1)
-    count = 0
     vol1 = Cuboid(c1, c2)
     vol2 = Cuboid(c1, c1)
     vol3 = Cuboid(c2, c2)
-    count += f_structure.fill(vol1, block1)
-    count += f_structure.fill(vol2, block2)
-    count += f_structure.fill(vol3, None)
+    f_structure.fill(vol1, block1)
+    f_structure.fill(vol2, block2)
+    f_structure.fill(vol3, None)
     f_structure.get_nbt().write_file(filename=save_to_path + name)
 
 
 def test_fill_replace(save_to_path, name, size: int, block, filter):
-    f_structure = StructureBlocks()
+    f_structure = NbtStructure()
     c1 = Vector(0, 0, 0)
     c2 = Vector(size - 1, size - 1, size - 1)
-    count = 0
     vol1 = Cuboid(c1, c2)
     vol2 = Cuboid(c1, c1)
     vol3 = Cuboid(c2, c2)
-    count += f_structure.fill_replace(vol1, filter, None)
-    count += f_structure.fill_replace(vol2, block, filter)
-    count += f_structure.fill_replace(vol3, None, filter)
+    f_structure.fill_replace(vol1, filter, None)
+    f_structure.fill_replace(vol2, block, filter)
+    f_structure.fill_replace(vol3, None, filter)
     f_structure.get_nbt().write_file(filename=save_to_path + name)
 
 
 def test_clone(save_to_path, name, block1, block2):
-    f_structure = StructureBlocks()
+    f_structure = NbtStructure()
     c1 = Vector(0, 0, 0)
     c2 = Vector(1, 1, 1)
-    count = 0
-    count += f_structure.set_block(c1, block1)
-    count += f_structure.set_block(c2, block2)
-    count += f_structure.clone_block(c1, c2 * 2)
+    f_structure.set_block(c1, block1)
+    f_structure.set_block(c2, block2)
+    f_structure.clone_block(c1, c2 * 2)
     vol1 = Cuboid(c1, c2)
-    count += f_structure.clone(vol1, c2 * 2)
+    f_structure.clone(vol1, c2 * 2)
     f_structure.get_nbt().write_file(filename=save_to_path + name)
 
-    g_structure = StructureBlocks()
+    g_structure = NbtStructure()
     g_structure.clone_structure(f_structure, c2 * 5)
     g_structure.set_block(c1, AIR_BLOCK)
-    if g_structure.get_block_state(c2 * 5) != block1:
+    test_block = g_structure.get_block_state(c2 * 5)
+    if test_block != block1:
         raise ValueError("should be block1")
     g_structure.get_nbt(fill_void_with_air=False).write_file(
         filename=save_to_path + "c" + name
     )
 
     try:
-        count += f_structure.clone(vol1, c2)
+        f_structure.clone(vol1, c2)
     except:
-        return count
+        return
     raise ValueError("That should have failed")
 
 
 def test_fills(save_to_path, name, block1, block2):
     c1 = Vector(0, 0, 0)
-    f_structure = StructureBlocks()
+    f_structure = NbtStructure()
 
     c2 = Vector(1, 1, 1)
     vol1 = Cuboid(c1, c2 * 9)
@@ -133,10 +129,10 @@ def cuboid_corners(save_to_path, name, dist: Vector, block1, block2):
     dest_vectors.append(Vector(-dist.x, dist.y, -dist.z))
     dest_vectors.append(Vector(-dist.x, -dist.y, dist.z))
     dest_vectors.append(Vector(-dist.x, -dist.y, -dist.z))
-    f_structure = StructureBlocks()
+    f_structure = NbtStructure()
 
     for vec in dest_vectors:
-        f_structure.fill_line(LineSegment(dest_vectors), block1)
+        f_structure.fill_line(LineSegment([c0, vec]), block1)
         
     f_structure.set_block(c0, block2)
 
@@ -152,7 +148,7 @@ def connect_the_dots(save_to_path, name, block1, block2):
     dest_vectors.append(Vector(10,0,0 ))
     dest_vectors.append(Vector(10,5,5 ))
     dest_vectors.append(Vector(7,7,7 ))
-    f_structure = StructureBlocks()
+    f_structure = NbtStructure()
 
     for vec in dest_vectors:
         f_structure.fill_line(LineSegment(dest_vectors), block1)

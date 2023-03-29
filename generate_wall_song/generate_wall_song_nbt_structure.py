@@ -84,8 +84,8 @@ def build_sequencer(
     tickchannels: TickChannels,
     is_south_half: bool,
     max_height: int,
-) -> nbth.StructureBlocks:
-    structure = nbth.StructureBlocks()
+) -> nbth.NbtStructure:
+    structure = nbth.NbtStructure()
     build_base(structure, instruments, channels)
     encode_song(structure, channels, tickchannels, is_south_half, max_height)
 
@@ -93,7 +93,7 @@ def build_sequencer(
 
 
 def build_base(
-    structure: nbth.StructureBlocks,
+    structure: nbth.NbtStructure,
     instruments: list[InstrumentBlock],
     channels: list[Channel],
 ):
@@ -133,7 +133,7 @@ def build_base(
 
 
 def build_chord(
-    structure: nbth.StructureBlocks,
+    structure: nbth.NbtStructure,
     instruments: list[InstrumentBlock],
     channel: Channel,
     z: int,
@@ -275,7 +275,7 @@ def build_chord(
 
 
 def encode_song(
-    structure: nbth.StructureBlocks,
+    structure: nbth.NbtStructure,
     channels: list[Channel],
     tickchannels: TickChannels,
     is_south_half: bool,
@@ -318,7 +318,7 @@ def encode_song(
         curr_y += 2
 
     # add walls and blocks that go next to walls
-    temp_structure = nbth.StructureBlocks()
+    temp_structure = nbth.NbtStructure()
     curr_volume = Cuboid(Vector(0, 4, -1), Vector(0, curr_y, -1))
     temp_structure.fill(curr_volume, blocks.neutral_building)
     curr_volume = Cuboid(Vector(0, 4, len(channels)), Vector(0, curr_y, len(channels)))
@@ -343,7 +343,7 @@ def get_channel_positions(channels: list[Channel]):
 
 
 def place_pistons(
-    structure: nbth.StructureBlocks,
+    structure: nbth.NbtStructure,
     x: int,
     y: int,
     channels_to_place: list[int],
@@ -357,7 +357,7 @@ def place_pistons(
 
 def get_piston_redstone_line(length: int, is_south_half: bool):
     # main line
-    p_structure = nbth.StructureBlocks()
+    p_structure = nbth.NbtStructure()
     curr_vol = Cuboid(Vector(0, 0, 0), Vector(0, 0, length - 1))
     p_structure.fill(curr_vol, blocks.redstone_line_main)
     curr_vol = Cuboid(Vector(0, 1, 0), Vector(0, 1, length - 1))
@@ -376,6 +376,6 @@ def get_piston_redstone_line(length: int, is_south_half: bool):
     return p_structure
 
 
-def set_up_controls(structure: nbth.StructureBlocks):
+def set_up_controls(structure: nbth.NbtStructure):
     """feed redstone signals from start, to each segment, and back to start"""
     pass
