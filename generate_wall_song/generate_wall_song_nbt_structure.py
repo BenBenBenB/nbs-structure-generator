@@ -35,7 +35,7 @@ def generate_wall_song_nbt_structure(
     channel_count_1, channel_count_2 = determine_channel_counts(len(channels))
     ordered_channels = reorder_channels(channels)
     channels1 = ordered_channels[0:channel_count_1]
-    channels2 = ordered_channels[channel_count_1 + 1 :] if channel_count_2 > 0 else []
+    channels2 = ordered_channels[channel_count_1:] if channel_count_2 > 0 else []
 
     # build layer by layer and structure by structure.
     structure1 = build_sequencer(instruments, channels1, tickchannels, True, max_height)
