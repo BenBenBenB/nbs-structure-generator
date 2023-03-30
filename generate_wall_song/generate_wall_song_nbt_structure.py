@@ -1,6 +1,7 @@
 from process_song import TickChannels, Channel
 import nbt_helper.nbt_structure_helper as nbth
 from nbt_helper.plot_helpers import Vector, Cuboid
+from nbt_helper.item_helper import ItemStack, Inventory
 import block_settings as blocks
 
 
@@ -326,8 +327,11 @@ def place_starter(structure: nbth.NbtStructure):
     starter.set_block(Vector(0, 7, 0), blocks.redstone_line_start)
     starter.set_block(Vector(0, 8, 0), blocks.get_redstone_torch(False, None))
     starter.set_block(Vector(0, 9, 0), blocks.redstone_line_start)
-    starter.set_block(Vector(0, 10, 0), blocks.get_sticky_piston("up"))
-    starter.set_block(Vector(0, 11, 0), blocks.get_observer("west"))
+    starter.set_block(Vector(0, 10, 0), blocks.get_redstone_torch(True, None))
+    starter.set_block(Vector(0, 11, 0), blocks.redstone_line_start)
+    starter.set_block(Vector(0, 12, 0), blocks.redstone_line_start)
+    starter.set_block(Vector(-1, 11, 0), blocks.get_sticky_piston("up"))
+    starter.set_block(Vector(-1, 13, 0), blocks.get_observer("west"))
     starter.set_block(Vector(1, 11, 0), blocks.redstone_slab)
     starter.set_block(Vector(2, 11, 0), blocks.redstone_slab)
     starter.set_block(Vector(1, 12, 0), blocks.get_repeater("west", 2))
@@ -336,7 +340,10 @@ def place_starter(structure: nbth.NbtStructure):
     starter.set_block(Vector(1, 8, 0), blocks.redstone_line_start)
     starter.set_block(Vector(1, 9, 0), blocks.get_comparator("east", "compare"))
     starter.set_block(Vector(2, 9, 0), blocks.get_dropper("up"))
-    starter.set_block(Vector(2, 10, 0), blocks.get_dropper("down"))
+    inv = Inventory(
+        "minecraft:dropper", [ItemStack("minecraft:wooden_sword", 1, 0, 0, None)]
+    )
+    starter.set_block(Vector(2, 10, 0), blocks.get_dropper("down"), inv)
 
     structure.clone_structure(starter, Vector(3, 7, -2))
 
@@ -386,17 +393,51 @@ def encode_song(
 
     # add walls and blocks that go next to walls
     temp_structure = nbth.NbtStructure()
-    curr_volume = Cuboid(Vector(0, 4, -1), Vector(0, curr_y, -1))
+    temp_y = curr_y - 1
+    curr_volume = Cuboid(Vector(0, 5, -1), Vector(0, temp_y, -1))
     temp_structure.fill(curr_volume, blocks.neutral_building)
-    curr_volume = Cuboid(Vector(0, 4, len(channels)), Vector(0, curr_y, len(channels)))
+    curr_volume = Cuboid(Vector(0, 5, len(channels)), Vector(0, temp_y, len(channels)))
     temp_structure.fill(curr_volume, blocks.neutral_building)
-    curr_volume = Cuboid(Vector(0, 5, 0), Vector(0, curr_y - 1, len(channels) - 1))
+    curr_volume = Cuboid(Vector(0, 5, 0), Vector(0, temp_y - 1, len(channels) - 1))
     temp_structure.fill(curr_volume, blocks.wall_ns)
-    curr_volume = Cuboid(Vector(0, curr_y, 0), Vector(0, curr_y, len(channels) - 1))
+    curr_volume = Cuboid(Vector(0, temp_y, 0), Vector(0, temp_y, len(channels) - 1))
     temp_structure.fill(curr_volume, blocks.wall_ns_top)
 
     structure.clone_structure(temp_structure, Vector(0, 0, 0))
     structure.clone_structure(temp_structure, Vector(6, 0, 0))
+
+    if curr_tick > max_tick:
+        if is_south_half:
+            place_downward_line(
+                structure, Vector(6, 17, -2), curr_y - 1, blocks.redstone_line_reset
+            )
+    else:
+        if is_south_half:
+            place_downward_line(
+                structure, Vector(0, 21, -2), curr_y - 5, blocks.redstone_line_torch
+            )
+            place_downward_line(
+                structure, Vector(6, 21, -2), curr_y - 5, blocks.redstone_line_torch
+            )
+        extend_song(
+            structure,
+            curr_tick,
+            tickchannels,
+            channel_positions,
+            starting_height,
+            max_height,
+        )
+
+
+def extend_song(
+    structure: nbth.NbtStructure,
+    channels: list[Channel],
+    tickchannels: TickChannels,
+    is_south_half: bool,
+    starting_height: int,
+    max_height: int,
+):
+    pass
 
 
 # goal: create list so we can input channel id as index, get back block's z
@@ -448,6 +489,33 @@ def get_piston_redstone_line(length: int, is_south_half: bool):
             Vector(0, 1, length), blocks.get_redstone_torch(False, "north")
         )
     return p_structure
+
+
+def place_downward_line(
+    structure: nbth.NbtStructure,
+    observer_pos: Vector,
+    max_y: int,
+    bottom_block: nbth.BlockData,
+) -> None:
+    structure.set_block(observer_pos, blocks.get_observer("up"))
+    pos1 = observer_pos.copy()
+    pos1.y -= 1
+    structure.set_block(pos1, bottom_block)
+    pos1.y += 2
+    pos2 = observer_pos.copy()
+    pos2.y = max_y
+    curr_vol = Cuboid(pos1, pos2)
+    structure.fill(curr_vol, blocks.wall_ns)
+    structure.set_block(pos2, blocks.wall_ns_top)
+    pos1.z -= 1
+    pos2.z -= 1
+    curr_vol = Cuboid(pos1, pos2)
+    structure.fill(curr_vol, blocks.neutral_building)
+
+    curr_pos = Vector(observer_pos.x - 2, max_y, observer_pos.z)
+    structure.set_block(curr_pos, blocks.get_redstone_torch(False, "east"))
+    curr_pos.x += 1
+    structure.set_block(curr_pos, blocks.get_trap_door("iron", "west", "top"))
 
 
 def set_up_controls(structure: nbth.NbtStructure):

@@ -1,5 +1,6 @@
 from nbt.nbt import *
 from nbt_helper.plot_helpers import LineSegment, Vector, Cuboid
+from nbt_helper.item_helper import *
 
 AIR_BLOCK_NAME = "minecraft:air"
 
@@ -103,10 +104,12 @@ class BlockPosition:
 
     pos: Vector
     state: int  # from Palette
+    inv: Inventory
 
-    def __init__(self, pos: Vector, state: int) -> None:
+    def __init__(self, pos: Vector, state: int, inventory: Inventory = None) -> None:
         self.pos = pos.copy()
         self.state = state
+        self.inv = inventory
 
     def __hash__(self) -> int:
         return hash(self.pos)
@@ -120,8 +123,11 @@ class BlockPosition:
 
     def get_nbt(self) -> TAG_Compound:
         nbt_block = TAG_Compound()
+        if self.inv is not None:
+            nbt_block.tags.append(self.inv.get_nbt())
         nbt_block.tags.append(self.pos.get_nbt("pos"))
         nbt_block.tags.append(TAG_Int(name="state", value=self.state))
+
         return nbt_block
 
 
@@ -230,12 +236,12 @@ class NbtStructure:
     def __get_block(self, pos: Vector) -> BlockPosition:
         return self.blocks.get(pos, None)
 
-    def set_block(self, pos: Vector, block: BlockData) -> bool:
+    def set_block(self, pos: Vector, block: BlockData, inv: Inventory = None) -> bool:
         """Update block at pos. Remove if block is None. Returns True if an update was made."""
         if block is None:
             return self.__remove_block(pos)
         state = self.__upsert_palette(block)
-        return self.__set_block(BlockPosition(pos, state))
+        return self.__set_block(BlockPosition(pos, state, inv))
 
     def __set_block(self, new_block: BlockPosition) -> bool:
         self.blocks[new_block.pos] = new_block
@@ -297,7 +303,7 @@ class NbtStructure:
         """Completely clone other structure to this one. dest defines minimum x,y,z corner of target volume"""
         for otherblock in other.blocks.values():
             dest_pos = otherblock.pos + dest
-            self.set_block(dest_pos, other.palette[otherblock.state])
+            self.set_block(dest_pos, other.palette[otherblock.state], otherblock.inv)
 
     def clone(self, source_volume: Cuboid, dest: Vector) -> None:
         """Clones blocks from source_volume. dest defines minimum x,y,z of target volume which must not overlap source."""
@@ -313,7 +319,7 @@ class NbtStructure:
         if block is None:
             return self.__remove_block(t_pos)
         else:
-            return self.__set_block(BlockPosition(t_pos, block.state))
+            return self.__set_block(BlockPosition(t_pos, block.state, block.inv))
 
     def crop(self, volume: Cuboid) -> None:
         """Remove blocks outside of volume
@@ -325,7 +331,9 @@ class NbtStructure:
             if not volume.contains(v.pos):
                 self.blocks.pop(k)
 
-    def fill(self, volume: Cuboid, fill_block: BlockData) -> None:
+    def fill(
+        self, volume: Cuboid, fill_block: BlockData, inv: Inventory = None
+    ) -> None:
         """Set all blocks in volume to fill_block.
 
         Args:
@@ -336,14 +344,16 @@ class NbtStructure:
             return self.__remove(volume)
         new_state = self.__upsert_palette(fill_block)
         for pos in volume:
-            self.__set_block(BlockPosition(pos, new_state))
+            self.__set_block(BlockPosition(pos, new_state, inv))
 
     def __remove(self, volume: Cuboid) -> None:
         """Remove all blocks in volume"""
         for pos in volume:
             self.__remove_block(pos)
 
-    def fill_hollow(self, volume: Cuboid, fill_block: BlockData) -> None:
+    def fill_hollow(
+        self, volume: Cuboid, fill_block: BlockData, inv: Inventory = None
+    ) -> None:
         """Fill all blocks along the 6 faces of cuboid to fill_block. Fill interior with air.
 
         Args:
@@ -355,8 +365,8 @@ class NbtStructure:
             shift = Vector(1, 1, 1)
             interior_min = volume.min_corner + shift
             interior_max = volume.max_corner - shift
-            self.fill(Cuboid(interior_min, interior_max), AIR_BLOCK)
-        self.fill_outline(volume, fill_block)
+            self.fill(Cuboid(interior_min, interior_max), AIR_BLOCK, None)
+        self.fill_outline(volume, fill_block, inv)
 
     def __pressurize(
         self, blocks_to_write: list[BlockPosition], volume: Cuboid
@@ -365,13 +375,13 @@ class NbtStructure:
         air_state = self.__upsert_palette(AIR_BLOCK)
         for pos in volume:
             if self.__get_block(pos) is None:
-                blocks_to_write[pos] = BlockPosition(pos, air_state)
+                blocks_to_write[pos] = BlockPosition(pos, air_state, None)
 
     def pressurize(self) -> None:
         """Fill all voids with air. Use this to make entire cuboid overwrite existing blocks when loading into Minecraft or cloning."""
         min_coords = self.get_min_coords()
         max_coords = self.get_max_coords()
-        return self.fill_keep(Cuboid(min_coords, max_coords), AIR_BLOCK)
+        return self.fill_keep(Cuboid(min_coords, max_coords), AIR_BLOCK, None)
 
     def depressurize(self) -> None:
         """Replace all air blocks with void. This allows you load in MC and clone without air overwriting existing blocks in target volume.
@@ -381,9 +391,11 @@ class NbtStructure:
         """
         min_coords = self.get_min_coords()
         max_coords = self.get_max_coords()
-        return self.fill_keep(Cuboid(min_coords, max_coords), None)
+        return self.fill_keep(Cuboid(min_coords, max_coords), None, None)
 
-    def fill_keep(self, volume: Cuboid, fill_block: BlockData) -> None:
+    def fill_keep(
+        self, volume: Cuboid, fill_block: BlockData, inv: Inventory = None
+    ) -> None:
         """Fill only air blocks and void spaces with fill_block. Leave others untouched.
 
         Args:
@@ -392,10 +404,12 @@ class NbtStructure:
             fill_block (BlockData):
                 use fill_block = None to remove all air blocks
         """
-        self.fill_replace(volume, fill_block, AIR_BLOCK)
-        self.fill_replace(volume, fill_block, None)
+        self.fill_replace(volume, fill_block, AIR_BLOCK, inv)
+        self.fill_replace(volume, fill_block, None, inv)
 
-    def fill_outline(self, volume: Cuboid, fill_block: BlockData) -> None:
+    def fill_outline(
+        self, volume: Cuboid, fill_block: BlockData, inv: Inventory = None
+    ) -> None:
         """Fill all blocks along the 6 faces of cuboid to fill_block. Leave interior untouched
 
         Args:
@@ -407,7 +421,7 @@ class NbtStructure:
         new_state = self.__upsert_palette(fill_block)
         for pos in volume:
             if volume.boundary_contains(pos):
-                self.__set_block(BlockPosition(pos, new_state))
+                self.__set_block(BlockPosition(pos, new_state, inv))
 
     def __remove_outline(self, volume: Cuboid) -> None:
         """Remove all blocks along faces of cuboid."""
@@ -415,14 +429,16 @@ class NbtStructure:
             if volume.boundary_contains(pos):
                 self.__remove_block(pos)
 
-    def fill_frame(self, volume: Cuboid, fill_block: BlockData) -> None:
+    def fill_frame(
+        self, volume: Cuboid, fill_block: BlockData, inv: Inventory = None
+    ) -> None:
         """Fill all blocks along edges of cuboid to fill_block."""
         if fill_block == None:
             return self.__remove_frame(volume)
         new_state = self.__upsert_palette(fill_block)
         for pos in volume:
             if volume.edge_contains(pos):
-                self.__set_block(BlockPosition(pos, new_state))
+                self.__set_block(BlockPosition(pos, new_state, inv))
 
     def __remove_frame(self, volume: Cuboid) -> None:
         """Remove all blocks along edges of cuboid"""
@@ -435,12 +451,13 @@ class NbtStructure:
         volume: Cuboid,
         fill_block: BlockData,
         filter_block: BlockData,
+        inv: Inventory = None,
     ) -> None:
         """Replace all instances of filter_block with fill_block in volume. Use None to target voids."""
         if fill_block is None:
             return self.__remove_replace(volume, filter_block)
         if filter_block is None:
-            return self.__fill_void(volume, fill_block)
+            return self.__fill_void(volume, fill_block, inv)
         elif fill_block == filter_block:
             return
 
@@ -453,6 +470,7 @@ class NbtStructure:
             block = self.__get_block(pos)
             if block is not None and block.state == filter_state:
                 block.state = new_state
+                block.inventory = inv
 
     def __remove_replace(self, volume: Cuboid, filter_block: BlockData) -> None:
         """Remove all instances of filter_block from volume."""
@@ -465,22 +483,26 @@ class NbtStructure:
             if block is not None and block.state == state_to_replace:
                 self.__remove_block(pos)
 
-    def __fill_void(self, volume: Cuboid, fill_block: BlockData) -> None:
+    def __fill_void(
+        self, volume: Cuboid, fill_block: BlockData, inv: Inventory = None
+    ) -> None:
         """Fill all void positions with fill_block. Leave existing blocks untouched"""
         new_state = self.__upsert_palette(fill_block)
         for pos in volume:
             block = self.__get_block(pos)
             if block is None:
-                self.__set_block(BlockPosition(pos, new_state))
+                self.__set_block(BlockPosition(pos, new_state, inv))
 
-    def fill_line(self, points: LineSegment, fill_block: BlockData) -> None:
+    def fill_line(
+        self, points: LineSegment, fill_block: BlockData, inv: Inventory = None
+    ) -> None:
         """Draw a 1 block wide straight line connecting each point to the next."""
         new_state = None if fill_block is None else self.__upsert_palette(fill_block)
         for pos in points.draw_straight_lines():
             if new_state is None:
                 self.__remove_block(pos)
             else:
-                self.__set_block(BlockPosition(pos, new_state))
+                self.__set_block(BlockPosition(pos, new_state, inv))
 
     @staticmethod
     def __does_clone_dest_overlap(source_volume: Cuboid, dest: Vector) -> bool:

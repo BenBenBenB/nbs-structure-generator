@@ -5,6 +5,11 @@ def bool_to_str(value: bool) -> str:
     return "true" if value else "false"
 
 
+def get_trap_door(material: str, facing: str, half: str):
+    name = "minecraft:" + material + "_trapdoor"
+    return BlockData(name, [("facing", facing), ("half", half)])
+
+
 def get_button(material: str, facing: str, face: str):
     name = "minecraft:" + material + "_button"
     return BlockData(name, [("facing", facing), ("face", face)])

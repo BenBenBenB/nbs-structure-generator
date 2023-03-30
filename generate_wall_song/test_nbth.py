@@ -1,6 +1,7 @@
 # todo write actual unit tests
 from nbt_helper.nbt_structure_helper import NbtStructure, AIR_BLOCK
 from nbt_helper.plot_helpers import Vector, LineSegment, Cuboid
+from nbt_helper.item_helper import ItemStack, Inventory, Enchantment
 import block_settings as blocks
 
 
@@ -133,7 +134,7 @@ def cuboid_corners(save_to_path, name, dist: Vector, block1, block2):
 
     for vec in dest_vectors:
         f_structure.fill_line(LineSegment([c0, vec]), block1)
-        
+
     f_structure.set_block(c0, block2)
 
     f_structure.get_nbt().write_file(filename=save_to_path + name)
@@ -142,20 +143,29 @@ def cuboid_corners(save_to_path, name, dist: Vector, block1, block2):
 def connect_the_dots(save_to_path, name, block1, block2):
     c0 = Vector(0, 0, 0)
     dest_vectors = []
-    dest_vectors.append(Vector(0,0,0 ))
-    dest_vectors.append(Vector(0,10,0 ))
-    dest_vectors.append(Vector(0,10,10 ))
-    dest_vectors.append(Vector(10,0,0 ))
-    dest_vectors.append(Vector(10,5,5 ))
-    dest_vectors.append(Vector(7,7,7 ))
+    dest_vectors.append(Vector(0, 0, 0))
+    dest_vectors.append(Vector(0, 10, 0))
+    dest_vectors.append(Vector(0, 10, 10))
+    dest_vectors.append(Vector(10, 0, 0))
+    dest_vectors.append(Vector(10, 5, 5))
+    dest_vectors.append(Vector(7, 7, 7))
     f_structure = NbtStructure()
 
-    for vec in dest_vectors:
-        f_structure.fill_line(LineSegment(dest_vectors), block1)
-        
+    f_structure.fill_line(LineSegment(dest_vectors), block1)
     f_structure.set_block(c0, block2)
-
     f_structure.get_nbt().write_file(filename=save_to_path + name)
+
+
+def test_inventory(save_to_path, name):
+    structure = NbtStructure()
+    enchants = [Enchantment("minecraft:sweeping", 3)]
+    inv = Inventory(
+        "minecraft:dropper", [ItemStack("minecraft:wooden_sword", 1, 0, 0, enchants)]
+    )
+    structure.set_block(Vector(0, 0, 0), blocks.get_dropper("down"), inv)
+    nbt_file = structure.get_nbt()
+    print(nbt_file.pretty_tree())
+    nbt_file.write_file(filename=save_to_path + name)
 
 
 # testing
@@ -167,7 +177,8 @@ if __name__ == "__main__":
     )
     create_pyramid_range(save_to_path, range(5, 10), blocks.floor_building, 3)
     test_clone(save_to_path, "c.nbt", blocks.floor_building, blocks.redstone_slab)
-    christmas_tree(save_to_path, "tree.nbt", 9, blocks.piston_payload)
+    christmas_tree(save_to_path, "tree.nbt", 19, blocks.piston_payload)
     test_fills(save_to_path, "fill.nbt", blocks.piston_payload, blocks.floor_building)
     cuboid_corners(save_to_path, "line.nbt", Vector(3,3,3), blocks.piston_payload, blocks.light_source)
     connect_the_dots(save_to_path, "lines.nbt", blocks.piston_payload, blocks.light_source)
+    test_inventory(save_to_path, "inv.nbt")
