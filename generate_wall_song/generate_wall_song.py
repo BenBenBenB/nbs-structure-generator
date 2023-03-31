@@ -4,6 +4,7 @@ from generate_wall_song_nbt_structure import (
     generate_wall_song_nbt_structure,
     InstrumentBlock,
 )
+import os
 
 
 def generate_wall_sequencer(
@@ -42,8 +43,10 @@ BLOCKS = [
 ]
 
 if __name__ == "__main__":
+    main_dir = os.path.dirname(os.path.dirname(__file__)) # get two directories above this file
     nbs_file_path = "songs/test.nbs"
+    full_path = os.path.join(main_dir, nbs_file_path)
     save_to_path = "./output/"
     filename = "wall.nbt"
     max_height = 384
-    generate_wall_sequencer(nbs_file_path, save_to_path, BLOCKS, max_height)
+    generate_wall_sequencer(full_path, save_to_path, BLOCKS, max_height)
