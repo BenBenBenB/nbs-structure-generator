@@ -49,5 +49,5 @@ if __name__ == "__main__":
     full_path = os.path.join(main_dir, nbs_file_path)
     save_to_path = "./output/"
     filename = "wall.nbt"
-    max_height = 384
+    max_height = 35
     generate_wall_sequencer(full_path, save_to_path, BLOCKS, max_height)

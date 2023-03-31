@@ -190,7 +190,7 @@ class LineSegment:
         return points_on_line
 
     # adapted from https://www.geeksforgeeks.org/bresenhams-algorithm-for-3-d-line-drawing/
-    def __bresenham3D(self, i) -> list[Vector]:  # noqa: N802
+    def __bresenham3D(self, i) -> list[Vector]:  # noqa: C901, N802
         """Draw a straight 1 block wide line between two points.
 
         Returns:

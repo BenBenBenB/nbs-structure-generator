@@ -59,7 +59,7 @@ def generate_wall_song_nbt_structure(
     )
 
 
-def determine_channel_counts(total_channels: int):
+def determine_channel_counts(total_channels: int) -> tuple[int, int]:
     max_channels_per_side = 30
     channel_count_1 = total_channels
     channel_count_2 = 0
@@ -73,7 +73,7 @@ def determine_channel_counts(total_channels: int):
     return channel_count_1, channel_count_2
 
 
-def reorder_channels(channels: list[Channel]):
+def reorder_channels(channels: list[Channel]) -> list[Channel]:
     working_channels = sorted(channels, key=len)
     ordered_channels = []
     while any(working_channels):
@@ -102,7 +102,7 @@ def build_base(
     instruments: list[InstrumentBlock],
     channels: list[Channel],
     is_south_half: bool,
-):
+) -> None:
     """build section from bottom up to just before note encoding"""
     # layers 0 - 4 without note blocks. align 1st channel's walls with 0,y,0
     max_z = len(channels) - 1
@@ -143,7 +143,7 @@ def build_chord(
     instruments: list[InstrumentBlock],
     channel: Channel,
     z: int,
-):
+) -> None:
     if len(channel) > 10:
         raise ValueError("Can only support up to 10 notes in a chord.")
     notes_in_chord = []
@@ -170,9 +170,9 @@ def build_chord(
 
     # else:   build big chord
     skip_block_4 = False
-    if len(notes_in_chord) >= 4 and notes_in_chord[3][0].gravity == True:
+    if len(notes_in_chord) >= 4 and notes_in_chord[3][0].gravity is True:
         index = next(
-            (i for i, item in enumerate(notes_in_chord) if item[0].gravity == False), -1
+            (i for i, item in enumerate(notes_in_chord) if item[0].gravity is False), -1
         )
         if index == -1:
             skip_block_4 = True
@@ -211,7 +211,7 @@ def build_chord(
     if not any(notes_in_chord):
         return
     # 4th
-    if skip_block_4 == False:
+    if skip_block_4 is False:
         block = notes_in_chord.pop(0)
         structure.set_block(Vector(4, 5, z), block[0].block_data)
         structure.set_block(Vector(4, 6, z), block[0].get_note_block(block[1]))
@@ -280,7 +280,9 @@ def build_chord(
         return
 
 
-def bus_to_torch_towers(structure: nbth.NbtStructure, max_z: int, is_south_half: bool):
+def bus_to_torch_towers(
+    structure: nbth.NbtStructure, max_z: int, is_south_half: bool
+) -> None:
     # bus signal to start of torch lines
     if max_z < 15:
         curr_vol = Cuboid(Vector(4, 19, -1), Vector(5, 19, -1))
@@ -315,7 +317,7 @@ def bus_to_torch_towers(structure: nbth.NbtStructure, max_z: int, is_south_half:
             structure.set_block(Vector(4, 20, max_z + 3), blocks.air)
 
 
-def place_starter(structure: nbth.NbtStructure):
+def place_starter(structure: nbth.NbtStructure) -> None:
     starter = nbth.NbtStructure()
     starter.set_block(Vector(0, 0, 0), blocks.get_button("stone", "south", "ceiling"))
     starter.set_block(Vector(0, 1, 0), blocks.redstone_line_start)
@@ -354,7 +356,7 @@ def encode_song(
     tickchannels: TickChannels,
     is_south_half: bool,
     max_height: int,
-):
+) -> None:
     """place pistons that will update walls"""
     channel_positions = get_channel_positions(channels)
     max_z = len(channels) - 1
@@ -406,6 +408,7 @@ def encode_song(
                 blocks.redstone_line_reset,
                 False,
             )
+            structure.set_block(Vector(4,curr_y - 1,-2), blocks.get_redstone_torch(False, "east"))
     else:
         downward_line_max_y = curr_y - 5
         if is_south_half:
@@ -508,7 +511,7 @@ def extend_song(
     repeating_blocks: nbth.NbtStructure,
     x_west_center: int,
     x_east_center: int,
-):
+) -> None:
     west_wing = nbth.NbtStructure()  # on beat, even tick
     east_wing = nbth.NbtStructure()  # off beat, odd tick
 
@@ -654,7 +657,7 @@ def bus_to_torch_towers_extended(
     max_z: int,
     is_south_half: bool,
     is_east_half: bool,
-):
+) -> None:
     # bus signal to start of torch lines
 
     if max_z < 15:
@@ -739,9 +742,9 @@ def bus_to_torch_towers_extended(
 
 
 # goal: create list so we can input channel id as index, get back block's z
-def get_channel_positions(channels: list[Channel]):
-    channel_positions = {}
-    for i in range(max((channel.id for channel in channels)) + 1):
+def get_channel_positions(channels: list[Channel]) -> dict[int, int]:
+    channel_positions: dict[int, int] = {}
+    for i in range(max(channel.id for channel in channels) + 1):
         pos = next((j for j, chan in enumerate(channels) if chan.id == i), None)
         channel_positions[i] = pos
     return channel_positions
@@ -754,13 +757,13 @@ def place_pistons(
     channels_to_place: list[int],
     channel_pos: dict,
     block: nbth.BlockData,
-):
+) -> None:
     for chan_id in channels_to_place:
         if channel_pos.get(chan_id, None) is not None:
             structure.set_block(Vector(x, y, channel_pos[chan_id]), block)
 
 
-def get_piston_redstone_line(max_z: int, is_south_half: bool):
+def get_piston_redstone_line(max_z: int, is_south_half: bool) -> nbth.NbtStructure:
     # main line
     p_structure = nbth.NbtStructure()
     curr_vol = Cuboid(Vector(0, 0, 0), Vector(0, 0, max_z))
@@ -817,14 +820,7 @@ def place_downward_line(
 
     if input_on_east:
         curr_pos = Vector(observer_pos.x + 1, max_y, observer_pos.z)
-        # structure.set_block(curr_pos, blocks.get_redstone_torch(False, "west"))
         structure.set_block(curr_pos, blocks.get_trap_door("iron", "east", "top"))
     else:
         curr_pos = Vector(observer_pos.x - 1, max_y, observer_pos.z)
-        # structure.set_block(curr_pos, blocks.get_redstone_torch(False, "east"))
         structure.set_block(curr_pos, blocks.get_trap_door("iron", "west", "top"))
-
-
-def set_up_controls(structure: nbth.NbtStructure):
-    """feed redstone signals from start, to each segment, and back to start"""
-    pass

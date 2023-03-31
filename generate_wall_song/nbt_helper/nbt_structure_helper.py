@@ -2,7 +2,6 @@ from contextlib import suppress
 
 from nbt.nbt import NBTFile, TAG_Compound, TAG_Int, TAG_List, TAG_String
 from nbt_helper.item_helper import Inventory
-from nbt_helper.nbt_structure_helper import BlockData
 from nbt_helper.plot_helpers import Cuboid, LineSegment, Vector
 
 AIR_BLOCK_NAME = "minecraft:air"
@@ -26,7 +25,7 @@ class BlockData:
             __o.properties
         )
 
-    def copy(self) -> BlockData:
+    def copy(self) -> "BlockData":
         return BlockData(self.name, self.properties)
 
     def get_nbt(self) -> TAG_Compound:
@@ -185,7 +184,7 @@ class NbtStructure:
             Replace all air blocks with voids
     """
 
-    blocks: dict[BlockPosition]
+    blocks: dict[int, BlockPosition]
     palette: Palette
 
     def __init__(self) -> None:
@@ -252,7 +251,6 @@ class NbtStructure:
     def __remove_block(self, pos: Vector) -> None:
         with suppress(KeyError):
             self.blocks.pop(pos)
-
 
     def __upsert_palette(self, new_block: BlockData) -> int:
         """adds block to palette and/or returns the state id"""
@@ -419,7 +417,7 @@ class NbtStructure:
             volume (Cuboid): defines corners of desired box
             fill_block (BlockData): block to set. Use None to remove blocks.
         """
-        if fill_block.name is None:
+        if fill_block is None:
             return self.__remove_outline(volume)
         new_state = self.__upsert_palette(fill_block)
         for pos in volume:
