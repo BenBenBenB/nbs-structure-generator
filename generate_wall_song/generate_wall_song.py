@@ -1,9 +1,9 @@
-from process_song import process_song
-from nbt_helper.nbt_structure_helper import BlockData
 from generate_wall_song_nbt_structure import (
-    generate_wall_song_nbt_structure,
     InstrumentBlock,
+    generate_wall_song_nbt_structure,
 )
+from nbt_helper.nbt_structure_helper import BlockData
+from process_song import process_song
 
 
 def generate_wall_sequencer(

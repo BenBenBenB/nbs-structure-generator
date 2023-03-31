@@ -1,15 +1,22 @@
-from nbt.nbt import *
+from nbt.nbt import (
+    TAG_Byte,
+    TAG_Compound,
+    TAG_Int,
+    TAG_List,
+    TAG_Short,
+    TAG_String,
+)
 
 
 class Enchantment:
     id: str
     lvl: int
 
-    def __init__(self, id: str, lvl: int):
+    def __init__(self, id: str, lvl: int) -> None:
         self.id = id
         self.lvl = lvl
 
-    def get_nbt(self):
+    def get_nbt(self) -> TAG_Compound:
         nbt_enchant = TAG_Compound()
         nbt_enchant.tags.append(TAG_Short(name="lvl", value=self.lvl))
         nbt_enchant.tags.append(TAG_String(name="id", value=self.id))
@@ -30,7 +37,7 @@ class ItemStack:
         slot: int,
         damage: int = None,
         enchantments: list[Enchantment] = None,
-    ):
+    ) -> None:
         self.id = item_id
         self.count = count
         self.slot = slot

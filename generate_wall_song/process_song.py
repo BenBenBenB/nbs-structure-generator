@@ -1,8 +1,10 @@
+from typing import tuple
+
 import pynbs
 
 
 # get channels that need to be activated for each tick of song
-def process_song(songpath: str):
+def process_song(songpath: str) -> tuple[list, list]:
     song = pynbs.read(songpath)
     all_channels = get_channels(song)
     ticks = []
@@ -15,7 +17,7 @@ def process_song(songpath: str):
     return all_channels, ticks
 
 
-def get_distinct_chords(song: pynbs.File):
+def get_distinct_chords(song: pynbs.File) -> list:
     distinct_chords = []  # instrument, key
     for _, chord in song:
         v_chord = VanillaChord.create_from_nbs_chord(
@@ -30,7 +32,7 @@ def get_distinct_chords(song: pynbs.File):
     return distinct_chords
 
 
-def get_channels(song: pynbs.File):
+def get_channels(song: pynbs.File) -> list:
     channels = []
     chords_working_list = get_distinct_chords(song)
     chords_working_list.sort()
@@ -48,14 +50,13 @@ def get_channels(song: pynbs.File):
 
 # todo: for  chords with 3+ notes and nonsolid blocks, we need space. place single note chords between them
 # perhaps handle in nbt side of code
-def reorder_channels(channels):
+def reorder_channels(channels) -> list:
     return channels
 
 
 class VanillaNote:
     block_id: int  # 0-15, block to be placed under note block
     key: int  # 0-23
-    # isVanilla: bool
 
     def __init__(self, instrument: int, key: int) -> None:
         self.block_id = instrument
@@ -64,10 +65,10 @@ class VanillaNote:
     def __repr__(self) -> str:
         return "(%i, %i)" % (self.block_id, self.key)
 
-    def __eq__(self, __o: object):
+    def __eq__(self, __o: object) -> bool:
         return self.key == __o.key and self.block_id == __o.block_id
 
-    def __lt__(self, __o: object):
+    def __lt__(self, __o: object) -> bool:
         if __o is None:
             return False
         if self.block_id != __o.block_id:
@@ -76,7 +77,7 @@ class VanillaNote:
             return self.key < __o.key
 
     @staticmethod
-    def create_from_nbs_note(note: pynbs.Note):
+    def create_from_nbs_note(note: pynbs.Note) -> "VanillaNote":
         return VanillaNote(note.instrument, note.key - 33)
 
 
@@ -86,16 +87,16 @@ class VanillaChord:
     def __init__(self, notes) -> None:
         self.notes = notes
 
-    def __iter__(self):
+    def __iter__(self) -> iter:
         return iter(self.notes)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self.notes)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.notes)
 
-    def __lt__(self, __o: object):
+    def __lt__(self, __o: object) -> bool:
         if len(self) != len(__o):
             return len(self) < len(__o)
         if any(self) and any(__o):
@@ -103,7 +104,7 @@ class VanillaChord:
         else:
             return False
 
-    def __eq__(self, __o: object):
+    def __eq__(self, __o: object) -> bool:
         return len(self) == len(__o) and self.contains(__o)
 
     def contains(self, note_search: "VanillaChord | list[VanillaNote]") -> bool:
@@ -140,16 +141,16 @@ class Channel:
         self.id = id
         self.chord = notes
 
-    def __iter__(self):
+    def __iter__(self) -> iter:
         return iter(self.chord)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%i, %s" % (self.id, self.chord)
 
-    def __lt__(self, __o: object):
+    def __lt__(self, __o: object) -> bool:
         return self.chord < __o.chord
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.chord)
 
 
@@ -162,23 +163,23 @@ class TickChannels:
         self.tick = tick
         self.channels = channel_ids
 
-    def __iter__(self):
+    def __iter__(self) -> iter:
         return iter(self.channels)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%i %s" % (self.tick, self.channels)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.channels)
 
-    def __lt__(self, __o: object):
+    def __lt__(self, __o: object) -> bool:
         return self.tick < __o.tick
 
 
 # determine the combination of channels to form chord
 def get_channels_in_chord(
     channels: list[Channel], chord: "VanillaChord | list[VanillaNote]"
-):
+) -> list[int]:
     channels_played_in_chord = []
     chord_working_copy = chord.copy()
     for channel in channels:
