@@ -5,12 +5,12 @@ def bool_to_str(value: bool) -> str:
     return "true" if value else "false"
 
 
-def get_trap_door(material: str, facing: str, half: str):
+def get_trap_door(material: str, facing: str, half: str) -> BlockData:
     name = "minecraft:" + material + "_trapdoor"
     return BlockData(name, [("facing", facing), ("half", half)])
 
 
-def get_button(material: str, facing: str, face: str):
+def get_button(material: str, facing: str, face: str) -> BlockData:
     name = "minecraft:" + material + "_button"
     return BlockData(name, [("facing", facing), ("face", face)])
 
@@ -39,7 +39,7 @@ def get_comparator(facing: str, mode: str) -> BlockData:
     return BlockData("minecraft:comparator", [("facing", facing), ("mode", mode)])
 
 
-def get_redstone_torch(lit: bool = True, facing: str = None):
+def get_redstone_torch(lit: bool = True, facing: str = None) -> BlockData:
     if facing is None:
         return BlockData("minecraft:redstone_torch", [("lit", bool_to_str(lit))])
     else:

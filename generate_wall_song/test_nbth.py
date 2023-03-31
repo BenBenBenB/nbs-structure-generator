@@ -1,11 +1,13 @@
 # todo write actual unit tests
-from nbt_helper.nbt_structure_helper import NbtStructure, AIR_BLOCK
-from nbt_helper.plot_helpers import Vector, LineSegment, Cuboid
-from nbt_helper.item_helper import ItemStack, Inventory, Enchantment
+import logging
+
 import block_settings as blocks
+from nbt_helper.item_helper import Enchantment, Inventory, ItemStack
+from nbt_helper.nbt_structure_helper import AIR_BLOCK, NbtStructure
+from nbt_helper.plot_helpers import Cuboid, LineSegment, Vector
 
 
-def christmas_tree(save_to_path, filename, width, block):
+def christmas_tree(save_to_path, filename, width, block) -> None:
     t_structure = NbtStructure()
     step_height = 3
     c1 = Vector(0, 0, 0)
@@ -24,13 +26,13 @@ def christmas_tree(save_to_path, filename, width, block):
     t_structure.get_nbt().write_file(filename=save_to_path + filename)
 
 
-def create_pyramid_range(save_to_path, base_width_range, block, step_height=1):
+def create_pyramid_range(save_to_path, base_width_range, block, step_height=1) -> None:
     for x in base_width_range:
         name = "p_%i.nbt" % x
         create_pyramid(save_to_path, name, x, block, step_height)
 
 
-def create_pyramid(save_to_path, filename, width, block, step_height=1):
+def create_pyramid(save_to_path, filename, width, block, step_height=1) -> None:
     p_structure = NbtStructure()
     c1 = Vector(0, 0, 0)
     c2 = Vector(width - 1, step_height - 1, width - 1)
@@ -44,7 +46,7 @@ def create_pyramid(save_to_path, filename, width, block, step_height=1):
     p_structure.get_nbt().write_file(filename=save_to_path + filename)
 
 
-def test_fill(save_to_path, name, size: int, block1, block2):
+def test_fill(save_to_path, name, size: int, block1, block2) -> None:
     f_structure = NbtStructure()
     c1 = Vector(0, 0, 0)
     c2 = Vector(size - 1, size - 1, size - 1)
@@ -57,7 +59,7 @@ def test_fill(save_to_path, name, size: int, block1, block2):
     f_structure.get_nbt().write_file(filename=save_to_path + name)
 
 
-def test_fill_replace(save_to_path, name, size: int, block, filter):
+def test_fill_replace(save_to_path, name, size: int, block, filter) -> None:
     f_structure = NbtStructure()
     c1 = Vector(0, 0, 0)
     c2 = Vector(size - 1, size - 1, size - 1)
@@ -70,7 +72,7 @@ def test_fill_replace(save_to_path, name, size: int, block, filter):
     f_structure.get_nbt().write_file(filename=save_to_path + name)
 
 
-def test_clone(save_to_path, name, block1, block2):
+def test_clone(save_to_path, name, block1, block2) -> None:
     f_structure = NbtStructure()
     c1 = Vector(0, 0, 0)
     c2 = Vector(1, 1, 1)
@@ -93,12 +95,12 @@ def test_clone(save_to_path, name, block1, block2):
 
     try:
         f_structure.clone(vol1, c2)
-    except:
+    except ValueError:
         return
     raise ValueError("That should have failed")
 
 
-def test_fills(save_to_path, name, block1, block2):
+def test_fills(save_to_path, name, block1, block2) -> None:
     c1 = Vector(0, 0, 0)
     f_structure = NbtStructure()
 
@@ -119,7 +121,7 @@ def test_fills(save_to_path, name, block1, block2):
     f_structure.get_nbt().write_file(filename=save_to_path + name)
 
 
-def cuboid_corners(save_to_path, name, dist: Vector, block1, block2):
+def cuboid_corners(save_to_path, name, dist: Vector, block1, block2) -> None:
     c0 = Vector(0, 0, 0)
     dest_vectors = []
     dest_vectors.append(Vector(dist.x, dist.y, dist.z))
@@ -140,7 +142,7 @@ def cuboid_corners(save_to_path, name, dist: Vector, block1, block2):
     f_structure.get_nbt().write_file(filename=save_to_path + name)
 
 
-def connect_the_dots(save_to_path, name, block1, block2):
+def connect_the_dots(save_to_path, name, block1, block2) -> None:
     c0 = Vector(0, 0, 0)
     dest_vectors = []
     dest_vectors.append(Vector(0, 0, 0))
@@ -156,7 +158,7 @@ def connect_the_dots(save_to_path, name, block1, block2):
     f_structure.get_nbt().write_file(filename=save_to_path + name)
 
 
-def test_inventory(save_to_path, name):
+def test_inventory(save_to_path, name) -> None:
     structure = NbtStructure()
     enchants = [Enchantment("minecraft:sweeping", 3)]
     inv = Inventory(
@@ -164,7 +166,7 @@ def test_inventory(save_to_path, name):
     )
     structure.set_block(Vector(0, 0, 0), blocks.get_dropper("down"), inv)
     nbt_file = structure.get_nbt()
-    print(nbt_file.pretty_tree())
+    logging.info(nbt_file.pretty_tree())
     nbt_file.write_file(filename=save_to_path + name)
 
 

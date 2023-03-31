@@ -1,6 +1,7 @@
 # todo: ellipsoids, spline curves, planes
 from math import floor
-from nbt.nbt import TAG_List, TAG_Int
+
+from nbt.nbt import TAG_Int, TAG_List
 
 
 class Vector:
@@ -14,7 +15,7 @@ class Vector:
         self.y = y
         self.z = z
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "(%d,%d,%d)" % (self.x, self.y, self.z)
 
     def __hash__(self) -> int:
@@ -100,12 +101,12 @@ class Cuboid:
     def __init__(self, coord1: Vector, coord2: Vector) -> None:
         self.min_corner, self.max_corner = Cuboid.__get_min_max_corners(coord1, coord2)
 
-    def __iter__(self):
+    def __iter__(self) -> "Cuboid":
         self.__iter_pos = self.min_corner.copy()
         self.__iter_pos.x -= 1
         return self
 
-    def __next__(self):
+    def __next__(self) -> Vector:
         if self.__iter_pos.x < self.max_corner.x:
             self.__iter_pos.x += 1
             return self.__iter_pos
@@ -169,10 +170,10 @@ class Cuboid:
 class LineSegment:
     points: list[Vector]
 
-    def __init__(self, points: list[Vector]):
+    def __init__(self, points: list[Vector]) -> None:
         self.points = points
 
-    def draw_straight_lines(self):
+    def draw_straight_lines(self) -> list[Vector]:
         """Draw a straight 1 block wide from each point to the next in the list, like connect the dots.
 
         Raises:
@@ -189,7 +190,7 @@ class LineSegment:
         return points_on_line
 
     # adapted from https://www.geeksforgeeks.org/bresenhams-algorithm-for-3-d-line-drawing/
-    def __bresenham3D(self, i):
+    def __bresenham3D(self, i) -> list[Vector]:  # noqa: N802
         """Draw a straight 1 block wide line between two points.
 
         Returns:

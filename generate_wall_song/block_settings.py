@@ -1,5 +1,4 @@
 from nbt_helper.nbt_structure_helper import BlockData
-from nbt_helper.block_helper import *
 
 air: BlockData = BlockData("minecraft:air")
 redstone_wire: BlockData = BlockData("minecraft:redstone_wire")

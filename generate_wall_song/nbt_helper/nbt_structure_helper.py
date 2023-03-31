@@ -1,6 +1,9 @@
-from nbt.nbt import *
-from nbt_helper.plot_helpers import LineSegment, Vector, Cuboid
-from nbt_helper.item_helper import *
+from contextlib import suppress
+
+from nbt.nbt import NBTFile, TAG_Compound, TAG_Int, TAG_List, TAG_String
+from nbt_helper.item_helper import Inventory
+from nbt_helper.nbt_structure_helper import BlockData
+from nbt_helper.plot_helpers import Cuboid, LineSegment, Vector
 
 AIR_BLOCK_NAME = "minecraft:air"
 
@@ -23,7 +26,7 @@ class BlockData:
             __o.properties
         )
 
-    def copy(self):
+    def copy(self) -> BlockData:
         return BlockData(self.name, self.properties)
 
     def get_nbt(self) -> TAG_Compound:
@@ -64,7 +67,7 @@ class Palette:
         self.__blocks = []
         self.extend(block_data.copy())
 
-    def __iter__(self):
+    def __iter__(self) -> iter:
         return iter(self.__blocks)
 
     def __getitem__(self, key) -> BlockData:
@@ -247,10 +250,9 @@ class NbtStructure:
         self.blocks[new_block.pos] = new_block
 
     def __remove_block(self, pos: Vector) -> None:
-        try:
+        with suppress(KeyError):
             self.blocks.pop(pos)
-        except KeyError:
-            pass
+
 
     def __upsert_palette(self, new_block: BlockData) -> int:
         """adds block to palette and/or returns the state id"""
@@ -345,6 +347,7 @@ class NbtStructure:
         new_state = self.__upsert_palette(fill_block)
         for pos in volume:
             self.__set_block(BlockPosition(pos, new_state, inv))
+        return None
 
     def __remove(self, volume: Cuboid) -> None:
         """Remove all blocks in volume"""
@@ -416,12 +419,13 @@ class NbtStructure:
             volume (Cuboid): defines corners of desired box
             fill_block (BlockData): block to set. Use None to remove blocks.
         """
-        if fill_block.name == None:
+        if fill_block.name is None:
             return self.__remove_outline(volume)
         new_state = self.__upsert_palette(fill_block)
         for pos in volume:
             if volume.boundary_contains(pos):
                 self.__set_block(BlockPosition(pos, new_state, inv))
+        return None
 
     def __remove_outline(self, volume: Cuboid) -> None:
         """Remove all blocks along faces of cuboid."""
@@ -433,12 +437,13 @@ class NbtStructure:
         self, volume: Cuboid, fill_block: BlockData, inv: Inventory = None
     ) -> None:
         """Fill all blocks along edges of cuboid to fill_block."""
-        if fill_block == None:
+        if fill_block is None:
             return self.__remove_frame(volume)
         new_state = self.__upsert_palette(fill_block)
         for pos in volume:
             if volume.edge_contains(pos):
                 self.__set_block(BlockPosition(pos, new_state, inv))
+        return None
 
     def __remove_frame(self, volume: Cuboid) -> None:
         """Remove all blocks along edges of cuboid"""
