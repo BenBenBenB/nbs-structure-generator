@@ -26,13 +26,11 @@ class InstrumentBlock:
 
 
 def generate_wall_song_nbt_structure(
-    save_to_path: str,
-    filename: str,
     instruments: list[InstrumentBlock],
     channels: list[Channel],
     tickchannels: list[TickChannels],
     max_height: int = 384,
-) -> None:
+) -> nbth.NbtStructure:
     channel_count_1, channel_count_2 = determine_channel_counts(len(channels))
     ordered_channels = reorder_channels(channels)
     channels1 = ordered_channels[0:channel_count_1]
@@ -54,9 +52,7 @@ def generate_wall_song_nbt_structure(
         )
         structure1.clone_structure(structure2, offset)
 
-    structure1.get_nbt(fill_void_with_air=False).write_file(
-        filename=save_to_path + filename
-    )
+    return structure1
 
 
 def determine_channel_counts(total_channels: int) -> tuple[int, int]:
@@ -151,7 +147,8 @@ def build_chord(
         instr = next(i for i in instruments if i.id == note.block_id)
         notes_in_chord.append((instr, note.key))
 
-    notes_in_chord.sort(key=lambda n: (n[0].transmits_redstone, n[0].id, n[1]))
+    # sort list to have a solid block first
+    notes_in_chord.sort(key=lambda n: (not n[0].transmits_redstone, n[0].id, n[1]))
     if len(channel) <= 2 and any(b for b in notes_in_chord if b[0].transmits_redstone):
         block = notes_in_chord.pop(0)
         structure.set_block(Vector(2, 3, z), block[0].block_data)
@@ -408,7 +405,9 @@ def encode_song(
                 blocks.redstone_line_reset,
                 False,
             )
-            structure.set_block(Vector(4,curr_y - 1,-2), blocks.get_redstone_torch(False, "east"))
+            structure.set_block(
+                Vector(4, curr_y - 1, -2), blocks.get_redstone_torch(False, "east")
+            )
     else:
         downward_line_max_y = curr_y - 5
         if is_south_half:

@@ -14,10 +14,14 @@ def generate_wall_sequencer(
     instruments: list[InstrumentBlock],
     max_height: int = 380,
 ) -> None:
+    if max_height < 32:
+        raise ValueError("Max height must be 32 or more.")
     channels, tickchannels = process_song(nbs_file_path)
-    generate_wall_song_nbt_structure(
-        save_to_path, filename, instruments, channels, tickchannels, max_height
+    nbtStructure = generate_wall_song_nbt_structure(
+        instruments, channels, tickchannels, max_height
     )
+    nbt_file = nbtStructure.get_nbt(fill_void_with_air=False)
+    nbt_file.write_file(filename=save_to_path)
 
 
 BLOCKS = [
@@ -45,9 +49,8 @@ BLOCKS = [
 
 if __name__ == "__main__":
     main_dir = os.path.dirname(os.path.dirname(__file__)) # get two directories above this file
-    nbs_file_path = "songs/test.nbs"
+    nbs_file_path = "songs/test2.nbs"
     full_path = os.path.join(main_dir, nbs_file_path)
-    save_to_path = "./output/"
-    filename = "wall.nbt"
-    max_height = 35
+    save_to_path = "./output/wall.nbt"
+    max_height = 37
     generate_wall_sequencer(full_path, save_to_path, BLOCKS, max_height)
