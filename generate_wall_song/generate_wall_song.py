@@ -4,7 +4,7 @@ from generate_wall_song_nbt_structure import (
     InstrumentBlock,
     generate_wall_song_nbt_structure,
 )
-from nbt_helper.nbt_structure_helper import BlockData
+from nbt_structure_utils import BlockData
 from process_song import process_song
 
 
@@ -20,7 +20,7 @@ def generate_wall_sequencer(
     nbtStructure = generate_wall_song_nbt_structure(
         instruments, channels, tickchannels, max_height
     )
-    nbt_file = nbtStructure.get_nbt(fill_void_with_air=False)
+    nbt_file = nbtStructure.get_nbt(pressurize=False)
     nbt_file.write_file(filename=save_to_path)
 
 

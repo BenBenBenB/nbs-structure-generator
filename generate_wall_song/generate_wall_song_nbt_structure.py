@@ -1,14 +1,19 @@
 import block_settings as blocks
-import nbt_helper.nbt_structure_helper as nbth
-from nbt_helper.item_helper import Inventory, ItemStack
-from nbt_helper.plot_helpers import Cuboid, Vector
+from nbt_structure_utils import (
+    BlockData,
+    Cuboid,
+    Inventory,
+    ItemStack,
+    NBTStructure,
+    Vector,
+)
 from process_song import Channel, TickChannels
 
 
 class InstrumentBlock:
     id: int
     instrument: str
-    block_data: nbth.BlockData
+    block_data: BlockData
     gravity: bool
     transmits_redstone: bool
 
@@ -19,7 +24,7 @@ class InstrumentBlock:
         self.gravity = grav
         self.transmits_redstone = reds
 
-    def get_note_block(self, key: int) -> nbth.BlockData:
+    def get_note_block(self, key: int) -> BlockData:
         nb = blocks.note_block.copy()
         nb.properties = [("instrument", self.instrument), ("note", key)]
         return nb
@@ -30,7 +35,7 @@ def generate_wall_song_nbt_structure(
     channels: list[Channel],
     tickchannels: list[TickChannels],
     max_height: int = 384,
-) -> nbth.NbtStructure:
+) -> NBTStructure:
     channel_count_1, channel_count_2 = determine_channel_counts(len(channels))
     ordered_channels = reorder_channels(channels)
     channels1 = ordered_channels[0:channel_count_1]
@@ -46,7 +51,7 @@ def generate_wall_song_nbt_structure(
 
     # if we needed the space, generate a 2nd one and place behind player listening spot.
     if any(channels2):
-        offset = nbth.Vector(0, 0, -3 - len(channels2))
+        offset = Vector(0, 0, -3 - len(channels2))
         structure2 = build_sequencer(
             instruments, channels2, tickchannels, False, max_height
         )
@@ -85,8 +90,8 @@ def build_sequencer(
     tickchannels: TickChannels,
     is_south_half: bool,
     max_height: int,
-) -> nbth.NbtStructure:
-    structure = nbth.NbtStructure()
+) -> NBTStructure:
+    structure = NBTStructure()
     build_base(structure, instruments, channels, is_south_half)
     encode_song(structure, channels, tickchannels, is_south_half, max_height)
 
@@ -94,7 +99,7 @@ def build_sequencer(
 
 
 def build_base(
-    structure: nbth.NbtStructure,
+    structure: NBTStructure,
     instruments: list[InstrumentBlock],
     channels: list[Channel],
     is_south_half: bool,
@@ -135,7 +140,7 @@ def build_base(
 
 
 def build_chord(
-    structure: nbth.NbtStructure,
+    structure: NBTStructure,
     instruments: list[InstrumentBlock],
     channel: Channel,
     z: int,
@@ -278,7 +283,7 @@ def build_chord(
 
 
 def bus_to_torch_towers(
-    structure: nbth.NbtStructure, max_z: int, is_south_half: bool
+    structure: NBTStructure, max_z: int, is_south_half: bool
 ) -> None:
     # bus signal to start of torch lines
     if max_z < 15:
@@ -314,8 +319,8 @@ def bus_to_torch_towers(
             structure.set_block(Vector(4, 20, max_z + 3), blocks.air)
 
 
-def place_starter(structure: nbth.NbtStructure) -> None:
-    starter = nbth.NbtStructure()
+def place_starter(structure: NBTStructure) -> None:
+    starter = NBTStructure()
     starter.set_block(Vector(0, 0, 0), blocks.get_button("stone", "south", "ceiling"))
     starter.set_block(Vector(0, 1, 0), blocks.redstone_line_start)
     starter.set_block(Vector(0, 2, 0), blocks.get_redstone_torch(True, None))
@@ -340,7 +345,7 @@ def place_starter(structure: nbth.NbtStructure) -> None:
     starter.set_block(Vector(1, 9, 0), blocks.get_comparator("east", "compare"))
     starter.set_block(Vector(2, 9, 0), blocks.get_dropper("up"))
     inv = Inventory(
-        "minecraft:dropper", [ItemStack("minecraft:wooden_sword", 1, 0, 0, None)]
+        "minecraft:dropper", [ItemStack("minecraft:wooden_sword", 1, 0, 0, [])]
     )
     starter.set_block(Vector(2, 10, 0), blocks.get_dropper("down"), inv)
 
@@ -348,7 +353,7 @@ def place_starter(structure: nbth.NbtStructure) -> None:
 
 
 def encode_song(
-    structure: nbth.NbtStructure,
+    structure: NBTStructure,
     channels: list[Channel],
     tickchannels: TickChannels,
     is_south_half: bool,
@@ -451,8 +456,8 @@ def encode_song(
 
 
 # max_z is for wall blacks only and does not include the solid edges
-def get_wall(max_z, height) -> nbth.NbtStructure:
-    temp_structure = nbth.NbtStructure()
+def get_wall(max_z, height) -> NBTStructure:
+    temp_structure = NBTStructure()
     curr_volume = Cuboid(Vector(0, 5, -1), Vector(0, height, -1))
     temp_structure.fill(curr_volume, blocks.neutral_building)
     curr_volume = Cuboid(Vector(0, 5, max_z), Vector(0, height, max_z + 1))
@@ -464,8 +469,8 @@ def get_wall(max_z, height) -> nbth.NbtStructure:
     return temp_structure
 
 
-def get_bottom_extender_east(max_z: int) -> nbth.NbtStructure:
-    temp_structure = nbth.NbtStructure()
+def get_bottom_extender_east(max_z: int) -> NBTStructure:
+    temp_structure = NBTStructure()
     curr_vol = Cuboid(Vector(0, 0, 0), Vector(4, 0, max_z))
     temp_structure.fill(curr_vol, blocks.redstone_solid_support)
     curr_vol = Cuboid(Vector(0, 1, 0), Vector(2, 1, max_z))
@@ -481,8 +486,8 @@ def get_bottom_extender_east(max_z: int) -> nbth.NbtStructure:
     return temp_structure
 
 
-def get_bottom_extender_west(max_z: int) -> nbth.NbtStructure:
-    temp_structure = nbth.NbtStructure()
+def get_bottom_extender_west(max_z: int) -> NBTStructure:
+    temp_structure = NBTStructure()
     curr_vol = Cuboid(Vector(0, 0, 0), Vector(4, 0, max_z))
     temp_structure.fill(curr_vol, blocks.redstone_solid_support)
     curr_vol = Cuboid(Vector(3, 1, 0), Vector(4, 1, max_z))
@@ -497,7 +502,7 @@ def get_bottom_extender_west(max_z: int) -> nbth.NbtStructure:
 
 
 def extend_song(
-    structure: nbth.NbtStructure,
+    structure: NBTStructure,
     curr_tick: int,
     max_tick: int,
     tickchannels: TickChannels,
@@ -507,12 +512,12 @@ def extend_song(
     max_height: int,
     downward_line_max_y: int,
     max_channel_z: int,
-    repeating_blocks: nbth.NbtStructure,
+    repeating_blocks: NBTStructure,
     x_west_center: int,
     x_east_center: int,
 ) -> None:
-    west_wing = nbth.NbtStructure()  # on beat, even tick
-    east_wing = nbth.NbtStructure()  # off beat, odd tick
+    west_wing = NBTStructure()  # on beat, even tick
+    east_wing = NBTStructure()  # off beat, odd tick
 
     curr_y = starting_height
     while max_height >= (curr_y + 1) and max_tick >= curr_tick:
@@ -650,7 +655,7 @@ def extend_song(
 
 
 def bus_to_torch_towers_extended(
-    structure: nbth.NbtStructure,
+    structure: NBTStructure,
     x: int,
     y: int,
     max_z: int,
@@ -750,21 +755,21 @@ def get_channel_positions(channels: list[Channel]) -> dict[int, int]:
 
 
 def place_pistons(
-    structure: nbth.NbtStructure,
+    structure: NBTStructure,
     x: int,
     y: int,
     channels_to_place: list[int],
     channel_pos: dict,
-    block: nbth.BlockData,
+    block: BlockData,
 ) -> None:
     for chan_id in channels_to_place:
         if channel_pos.get(chan_id, None) is not None:
             structure.set_block(Vector(x, y, channel_pos[chan_id]), block)
 
 
-def get_piston_redstone_line(max_z: int, is_south_half: bool) -> nbth.NbtStructure:
+def get_piston_redstone_line(max_z: int, is_south_half: bool) -> NBTStructure:
     # main line
-    p_structure = nbth.NbtStructure()
+    p_structure = NBTStructure()
     curr_vol = Cuboid(Vector(0, 0, 0), Vector(0, 0, max_z))
     p_structure.fill(curr_vol, blocks.redstone_line_main)
     curr_vol = Cuboid(Vector(0, 1, 0), Vector(0, 1, max_z))
@@ -792,10 +797,10 @@ def get_piston_redstone_line(max_z: int, is_south_half: bool) -> nbth.NbtStructu
 
 
 def place_downward_line(
-    structure: nbth.NbtStructure,
+    structure: NBTStructure,
     observer_pos: Vector,
     max_y: int,
-    bottom_block: nbth.BlockData,
+    bottom_block: BlockData,
     input_on_east: bool,
 ) -> None:
     structure.set_block(observer_pos, blocks.get_observer("up"))
