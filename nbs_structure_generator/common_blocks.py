@@ -9,16 +9,38 @@ class InstrumentBlock:
     block_data: BlockData
     gravity: bool
     transmits_redstone: bool
+    key: int  # will be "note" in block state
 
-    def __init__(self, id, name, block, grav, reds) -> None:
+    def __init__(
+        self,
+        id: int,
+        name: str,
+        block: BlockData,
+        grav: bool,
+        reds: bool,
+        key: int = None,
+    ) -> None:
         self.id = id
         self.instrument = name
         self.block_data = block
         self.gravity = grav
         self.transmits_redstone = reds
+        self.key = key
 
-    def get_note_block(self, key: int) -> BlockData:
-        return BlockData("note_block", [("instrument", self.instrument), ("note", key)])
+    def copy_with_key(self, key: int) -> "InstrumentBlock":
+        return InstrumentBlock(
+            self.id,
+            self.instrument,
+            self.block_data,
+            self.gravity,
+            self.transmits_redstone,
+            key,
+        )
+
+    def get_note_block(self) -> BlockData:
+        return BlockData(
+            "note_block", [("instrument", self.instrument), ("note", self.key)]
+        )
 
 
 INSTRUMENTS = [
@@ -41,6 +63,11 @@ INSTRUMENTS = [
 ]
 
 air: BlockData = BlockData("air")
+water: BlockData = BlockData("water")
+blue_ice: BlockData = BlockData("blue_ice")
+packed_ice: BlockData = BlockData("packed_ice")
+soul_soil: BlockData = BlockData("soul_soil")
+lamp: BlockData = BlockData("redstone_lamp")
 redstone_wire: BlockData = BlockData("redstone_wire")
 redstone_wire_connecting: BlockData = BlockData(
     "redstone_wire",
