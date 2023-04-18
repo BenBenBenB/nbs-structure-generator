@@ -145,36 +145,19 @@ def build_chord(
 
     # sort list to have a solid block first
     instrument_blocks.sort(key=lambda n: (not n.transmits_redstone, n.id, n.key))
-    # build all 1 note and some 2 note chords
-    if len(channel) <= 2 and any(b for b in instrument_blocks if b.transmits_redstone):
-        place_instrument(structure, Vector(2, 4, z), instrument_blocks.pop(0))
-        if any(instrument_blocks):
-            place_instrument(structure, Vector(3, 3, z), instrument_blocks.pop(0))
-        return
-    elif len(channel) == 1:
-        structure.set_block(Vector(2, 3, z), blocks.redstone_solid_support)
-        place_instrument(structure, Vector(3, 3, z), instrument_blocks.pop(0))
-        return
+    chord_built = build_small_chord(structure, instrument_blocks, z)
+    if not chord_built:
+        build_big_chord(structure, instrument_blocks, z)
 
-    # fix 4th block, which is the only in design that can't use a gravity block
-    skip_4th_block = False
-    if len(instrument_blocks) >= 4 and instrument_blocks[3].gravity is True:
-        index = next(
-            (i for i, item in enumerate(instrument_blocks) if item.gravity is False), -1
-        )
-        if index == -1:
-            skip_4th_block = True
-            if len(channel) > MAX_NOTES_IN_CHANNEL - 1:
-                raise ValueError(
-                    "Can only support %i gravity blocks in a chord."
-                    % (MAX_NOTES_IN_CHANNEL - 1)
-                )
-        else:
-            instrument_blocks[index], instrument_blocks[3] = (
-                instrument_blocks[3],
-                instrument_blocks[index],
-            )
+
+def build_big_chord(
+    structure: NBTStructure, instrument_blocks: list[blocks.InstrumentBlock], z: int
+) -> None:
+    skip_4th_block = fix_4th_block(instrument_blocks)
     structure.set_block(Vector(2, 3, z), blocks.redstone_solid_support)
+
+    vertical_bus = get_vertical_wire_segment()
+
     structure.set_block(Vector(2, 4, z), blocks.redstone_wire_connecting)
     structure.set_block(Vector(3, 2, z), blocks.redstone_bus_trans)
     structure.set_block(Vector(3, 3, z), blocks.redstone_wire_connecting)
@@ -184,11 +167,7 @@ def build_chord(
     place_instrument(structure, Vector(5, 3, z), instrument_blocks.pop(0))
     if not any(instrument_blocks):
         return
-    # bus wire
-    structure.set_block(Vector(1, 4, z), blocks.redstone_bus_trans)
-    structure.set_block(Vector(1, 5, z), blocks.redstone_wire_connecting)
-    structure.set_block(Vector(2, 5, z), blocks.redstone_bus_trans)
-    structure.set_block(Vector(2, 6, z), blocks.redstone_wire_connecting)
+    structure.clone_structure(vertical_bus, Vector(1, 4, z))
     # 3rd
     place_instrument(structure, Vector(3, 6, z), instrument_blocks.pop(0))
     if not any(instrument_blocks):
@@ -198,10 +177,9 @@ def build_chord(
         place_instrument(structure, Vector(4, 6, z), instrument_blocks.pop(0))
         if not any(instrument_blocks):
             return
-    # bus wire
-    structure.clone(Cuboid(Vector(1, 4, z), Vector(2, 5, z)), Vector(1, 6, z))
-    structure.clone(Cuboid(Vector(1, 4, z), Vector(2, 5, z)), Vector(1, 8, z))
-    structure.set_block(Vector(2, 10, z), blocks.redstone_wire_connecting)
+    # double bus's vertical distance
+    vertical_bus.clone_structure(vertical_bus, Vector(0, 2, 0))
+    structure.clone_structure(vertical_bus, Vector(1, 6, z))
     # 5th
     place_instrument(structure, Vector(3, 10, z), instrument_blocks.pop(0))
     if not any(instrument_blocks):
@@ -210,9 +188,7 @@ def build_chord(
     place_instrument(structure, Vector(4, 10, z), instrument_blocks.pop(0))
     if not any(instrument_blocks):
         return
-    # bus wire
-    structure.clone(Cuboid(Vector(1, 6, z), Vector(2, 9, z)), Vector(1, 10, z))
-    structure.set_block(Vector(2, 14, z), blocks.redstone_wire_connecting)
+    structure.clone_structure(vertical_bus, Vector(1, 10, z))
     # 7th
     place_instrument(structure, Vector(3, 14, z), instrument_blocks.pop(0))
     if not any(instrument_blocks):
@@ -221,9 +197,7 @@ def build_chord(
     place_instrument(structure, Vector(4, 14, z), instrument_blocks.pop(0))
     if not any(instrument_blocks):
         return
-    # bus wire
-    structure.clone(Cuboid(Vector(1, 10, z), Vector(2, 13, z)), Vector(1, 14, z))
-    structure.set_block(Vector(2, 18, z), blocks.redstone_wire_connecting)
+    structure.clone_structure(vertical_bus, Vector(1, 14, z))
     # 9th
     place_instrument(structure, Vector(3, 18, z), instrument_blocks.pop(0))
     if not any(instrument_blocks):
@@ -248,6 +222,55 @@ def place_instrument(
         curr_pos.y -= 1
         if block_info.gravity and nbt_s.get_block_state(curr_pos) is None:
             nbt_s.set_block(curr_pos, blocks.redstone_bus_trans)
+
+
+def build_small_chord(
+    structure: NBTStructure, instrument_blocks: list[blocks.InstrumentBlock], z: int
+) -> bool:
+    """Build all 1 note and some 2 note chords. Return True if chord was built"""
+    if len(instrument_blocks) <= 2 and any(
+        b for b in instrument_blocks if b.transmits_redstone
+    ):
+        place_instrument(structure, Vector(2, 4, z), instrument_blocks.pop(0))
+        if any(instrument_blocks):
+            place_instrument(structure, Vector(3, 3, z), instrument_blocks.pop(0))
+        return True
+    elif len(instrument_blocks) == 1:
+        structure.set_block(Vector(2, 3, z), blocks.redstone_solid_support)
+        place_instrument(structure, Vector(3, 3, z), instrument_blocks.pop(0))
+        return True
+    return False
+
+
+def get_vertical_wire_segment() -> NBTStructure:
+    vertical_bus = NBTStructure()
+    vertical_bus.set_block(Vector(0, 0, 0), blocks.redstone_bus_trans)
+    vertical_bus.set_block(Vector(0, 1, 0), blocks.redstone_wire_connecting)
+    vertical_bus.set_block(Vector(1, 1, 0), blocks.redstone_bus_trans)
+    vertical_bus.set_block(Vector(1, 2, 0), blocks.redstone_wire_connecting)
+    return vertical_bus
+
+
+def fix_4th_block(instrument_blocks: list[blocks.InstrumentBlock]) -> bool:
+    """Make sure 4th block is not a gravity block. Return true if no substitution could be made."""
+    skip_4th_block = False
+    if len(instrument_blocks) >= 4 and instrument_blocks[3].gravity is True:
+        index = next(
+            (i for i, item in enumerate(instrument_blocks) if item.gravity is False), -1
+        )
+        if index == -1:
+            skip_4th_block = True
+            if len(instrument_blocks) > MAX_NOTES_IN_CHANNEL - 1:
+                raise ValueError(
+                    "Can only support %i gravity blocks in a chord."
+                    % (MAX_NOTES_IN_CHANNEL - 1)
+                )
+        else:
+            instrument_blocks[index], instrument_blocks[3] = (
+                instrument_blocks[3],
+                instrument_blocks[index],
+            )
+    return skip_4th_block
 
 
 def bus_to_torch_towers(
