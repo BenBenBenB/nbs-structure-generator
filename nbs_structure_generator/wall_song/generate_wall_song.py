@@ -9,6 +9,8 @@ from nbt_structure_utils import (
 )
 from process_song import Channel, TickChannels
 
+MAX_NOTES_IN_CHANNEL = 10
+
 
 def generate_wall_song_nbt_structure(
     instruments: list[blocks.InstrumentBlock],
@@ -127,59 +129,60 @@ def build_chord(
     channel: Channel,
     z: int,
 ) -> None:
-    if len(channel) > 10:
-        raise ValueError("Can only support up to 10 notes in a chord.")
-    notes_in_chord = []
-    for note in channel:
-        instr = next(i for i in instruments if i.id == note.block_id)
-        notes_in_chord.append((instr, note.key))
+    if len(channel) > MAX_NOTES_IN_CHANNEL:
+        raise ValueError(
+            "Can only support %i gravity blocks in a chord." % (MAX_NOTES_IN_CHANNEL)
+        )
+
+    instrument_blocks = [
+        next(
+            instr.copy_with_key(note.key)
+            for instr in instruments
+            if instr.id == note.block_id
+        )
+        for note in channel
+    ]
 
     # sort list to have a solid block first
-    notes_in_chord.sort(key=lambda n: (not n[0].transmits_redstone, n[0].id, n[1]))
-    if len(channel) <= 2 and any(b for b in notes_in_chord if b[0].transmits_redstone):
-        block = notes_in_chord.pop(0)
-        structure.set_block(Vector(2, 3, z), block[0].block_data)
-        structure.set_block(Vector(2, 4, z), block[0].get_note_block(block[1]))
-        if any(notes_in_chord):
-            block = notes_in_chord.pop(0)
-            structure.set_block(Vector(3, 2, z), block[0].block_data)
-            structure.set_block(Vector(3, 3, z), block[0].get_note_block(block[1]))
+    instrument_blocks.sort(key=lambda n: (not n.transmits_redstone, n.id, n.key))
+    # build all 1 note and some 2 note chords
+    if len(channel) <= 2 and any(b for b in instrument_blocks if b.transmits_redstone):
+        place_instrument(structure, Vector(2, 4, z), instrument_blocks.pop(0))
+        if any(instrument_blocks):
+            place_instrument(structure, Vector(3, 3, z), instrument_blocks.pop(0))
         return
     elif len(channel) == 1:
         structure.set_block(Vector(2, 3, z), blocks.redstone_solid_support)
-        block = notes_in_chord.pop(0)
-        structure.set_block(Vector(3, 2, z), block[0].block_data)
-        structure.set_block(Vector(3, 3, z), block[0].get_note_block(block[1]))
+        place_instrument(structure, Vector(3, 3, z), instrument_blocks.pop(0))
         return
 
-    # else:   build big chord
-    skip_block_4 = False
-    if len(notes_in_chord) >= 4 and notes_in_chord[3][0].gravity is True:
+    # fix 4th block, which is the only in design that can't use a gravity block
+    skip_4th_block = False
+    if len(instrument_blocks) >= 4 and instrument_blocks[3].gravity is True:
         index = next(
-            (i for i, item in enumerate(notes_in_chord) if item[0].gravity is False), -1
+            (i for i, item in enumerate(instrument_blocks) if item.gravity is False), -1
         )
         if index == -1:
-            skip_block_4 = True
-            if len(channel) > 9:
-                raise ValueError("Can only support 9 gravity blocks in a chord.")
+            skip_4th_block = True
+            if len(channel) > MAX_NOTES_IN_CHANNEL - 1:
+                raise ValueError(
+                    "Can only support %i gravity blocks in a chord."
+                    % (MAX_NOTES_IN_CHANNEL - 1)
+                )
         else:
-            notes_in_chord[index], notes_in_chord[4] = (
-                notes_in_chord[index],
-                notes_in_chord[0],
+            instrument_blocks[index], instrument_blocks[3] = (
+                instrument_blocks[3],
+                instrument_blocks[index],
             )
     structure.set_block(Vector(2, 3, z), blocks.redstone_solid_support)
     structure.set_block(Vector(2, 4, z), blocks.redstone_wire_connecting)
     structure.set_block(Vector(3, 2, z), blocks.redstone_bus_trans)
     structure.set_block(Vector(3, 3, z), blocks.redstone_wire_connecting)
     # 1st
-    block = notes_in_chord.pop(0)
-    structure.set_block(Vector(4, 2, z), block[0].block_data)
-    structure.set_block(Vector(4, 3, z), block[0].get_note_block(block[1]))
+    place_instrument(structure, Vector(4, 3, z), instrument_blocks.pop(0))
     # 2nd
-    block = notes_in_chord.pop(0)
-    structure.set_block(Vector(5, 2, z), block[0].block_data)
-    structure.set_block(Vector(5, 3, z), block[0].get_note_block(block[1]))
-    if not any(notes_in_chord):
+    place_instrument(structure, Vector(5, 3, z), instrument_blocks.pop(0))
+    if not any(instrument_blocks):
         return
     # bus wire
     structure.set_block(Vector(1, 4, z), blocks.redstone_bus_trans)
@@ -187,81 +190,64 @@ def build_chord(
     structure.set_block(Vector(2, 5, z), blocks.redstone_bus_trans)
     structure.set_block(Vector(2, 6, z), blocks.redstone_wire_connecting)
     # 3rd
-    block = notes_in_chord.pop(0)
-    structure.set_block(Vector(3, 5, z), block[0].block_data)
-    structure.set_block(Vector(3, 6, z), block[0].get_note_block(block[1]))
-    if block[0].gravity:
-        structure.set_block(Vector(3, 4, z), blocks.redstone_bus_trans)
-    if not any(notes_in_chord):
+    place_instrument(structure, Vector(3, 6, z), instrument_blocks.pop(0))
+    if not any(instrument_blocks):
         return
     # 4th
-    if skip_block_4 is False:
-        block = notes_in_chord.pop(0)
-        structure.set_block(Vector(4, 5, z), block[0].block_data)
-        structure.set_block(Vector(4, 6, z), block[0].get_note_block(block[1]))
-    if not any(notes_in_chord):
-        return
+    if skip_4th_block is False:
+        place_instrument(structure, Vector(4, 6, z), instrument_blocks.pop(0))
+        if not any(instrument_blocks):
+            return
     # bus wire
     structure.clone(Cuboid(Vector(1, 4, z), Vector(2, 5, z)), Vector(1, 6, z))
     structure.clone(Cuboid(Vector(1, 4, z), Vector(2, 5, z)), Vector(1, 8, z))
     structure.set_block(Vector(2, 10, z), blocks.redstone_wire_connecting)
     # 5th
-    block = notes_in_chord.pop(0)
-    structure.set_block(Vector(3, 9, z), block[0].block_data)
-    structure.set_block(Vector(3, 10, z), block[0].get_note_block(block[1]))
-    if block[0].gravity:
-        structure.set_block(Vector(3, 8, z), blocks.redstone_bus_trans)
-    if not any(notes_in_chord):
+    place_instrument(structure, Vector(3, 10, z), instrument_blocks.pop(0))
+    if not any(instrument_blocks):
         return
     # 6th
-    block = notes_in_chord.pop(0)
-    structure.set_block(Vector(4, 9, z), block[0].block_data)
-    structure.set_block(Vector(4, 10, z), block[0].get_note_block(block[1]))
-    if block[0].gravity:
-        structure.set_block(Vector(4, 8, z), blocks.redstone_bus_trans)
-    if not any(notes_in_chord):
+    place_instrument(structure, Vector(4, 10, z), instrument_blocks.pop(0))
+    if not any(instrument_blocks):
         return
     # bus wire
     structure.clone(Cuboid(Vector(1, 6, z), Vector(2, 9, z)), Vector(1, 10, z))
     structure.set_block(Vector(2, 14, z), blocks.redstone_wire_connecting)
     # 7th
-    block = notes_in_chord.pop(0)
-    structure.set_block(Vector(3, 13, z), block[0].block_data)
-    structure.set_block(Vector(3, 14, z), block[0].get_note_block(block[1]))
-    if block[0].gravity:
-        structure.set_block(Vector(3, 12, z), blocks.redstone_bus_trans)
-    if not any(notes_in_chord):
+    place_instrument(structure, Vector(3, 14, z), instrument_blocks.pop(0))
+    if not any(instrument_blocks):
         return
     # 8th
-    block = notes_in_chord.pop(0)
-    structure.set_block(Vector(4, 13, z), block[0].block_data)
-    structure.set_block(Vector(4, 14, z), block[0].get_note_block(block[1]))
-    if block[0].gravity:
-        structure.set_block(Vector(4, 12, z), blocks.redstone_bus_trans)
-    if not any(notes_in_chord):
+    place_instrument(structure, Vector(4, 14, z), instrument_blocks.pop(0))
+    if not any(instrument_blocks):
         return
     # bus wire
     structure.clone(Cuboid(Vector(1, 10, z), Vector(2, 13, z)), Vector(1, 14, z))
     structure.set_block(Vector(2, 18, z), blocks.redstone_wire_connecting)
     # 9th
-    block = notes_in_chord.pop(0)
-    structure.set_block(Vector(3, 17, z), block[0].block_data)
-    structure.set_block(Vector(3, 18, z), block[0].get_note_block(block[1]))
-    if block[0].gravity:
-        structure.set_block(Vector(3, 16, z), blocks.redstone_bus_trans)
-    if not any(notes_in_chord):
-        return
-
-    if not any(notes_in_chord):
+    place_instrument(structure, Vector(3, 18, z), instrument_blocks.pop(0))
+    if not any(instrument_blocks):
         return
     # 10th
-    block = notes_in_chord.pop(0)
-    structure.set_block(Vector(4, 17, z), block[0].block_data)
-    structure.set_block(Vector(4, 18, z), block[0].get_note_block(block[1]))
-    if block[0].gravity:
-        structure.set_block(Vector(4, 16, z), blocks.redstone_bus_trans)
-    if not any(notes_in_chord):
-        return
+    place_instrument(structure, Vector(4, 18, z), instrument_blocks.pop(0))
+
+
+def place_instrument(
+    nbt_s: NBTStructure,
+    note_block_pos: Vector,
+    block_info: blocks.InstrumentBlock,
+) -> None:
+    if block_info is not None:
+        curr_pos = note_block_pos.copy()
+        curr_pos.y += 1
+        nbt_s.set_block(curr_pos, blocks.air)
+        curr_pos.y -= 1
+        nbt_s.set_block(curr_pos, block_info.get_note_block())
+        curr_pos.y -= 1
+        nbt_s.set_block(curr_pos, block_info.block_data)
+        curr_pos.y -= 1
+        if block_info.gravity and nbt_s.get_block_state(curr_pos) is None:
+            nbt_s.set_block(curr_pos, blocks.redstone_bus_trans)
 
 
 def bus_to_torch_towers(
