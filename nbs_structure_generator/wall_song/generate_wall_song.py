@@ -48,7 +48,8 @@ def determine_channel_counts(total_channels: int) -> tuple[int, int]:
     channel_count_2 = 0
     if channel_count_1 > max_channels_per_side * 2:
         raise ValueError(
-            "Max channel count is %i but %i were parsed from song." % (channel_count_1)
+            "Max channel count is %i but %i were parsed from song."
+            % (max_channels_per_side * 2, channel_count_1)
         )
     if channel_count_1 > max_channels_per_side:
         channel_count_2 = channel_count_1 // 2
@@ -335,9 +336,7 @@ def place_starter(structure: NBTStructure) -> None:
     starter.set_block(Vector(1, 8, 0), blocks.redstone_bus_start)
     starter.set_block(Vector(1, 9, 0), blocks.get_comparator("east", "compare"))
     starter.set_block(Vector(2, 9, 0), blocks.get_dropper("up"))
-    inv = Inventory(
-        "minecraft:dropper", [ItemStack("minecraft:wooden_sword", 1, 0, 0, [])]
-    )
+    inv = Inventory([ItemStack("minecraft:wooden_sword", 1, 0, 0, [])])
     starter.set_block(Vector(2, 10, 0), blocks.get_dropper("down"), inv)
 
     structure.clone_structure(starter, Vector(3, 7, -2))

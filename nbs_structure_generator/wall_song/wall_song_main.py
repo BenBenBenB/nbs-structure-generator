@@ -25,11 +25,9 @@ def generate_wall_sequencer(
 
 
 if __name__ == "__main__":
-    main_dir = os.path.dirname(
-        os.path.dirname(os.path.dirname(__file__))
-    )  # get two directories above this file
-    nbs_file_path = "songs/test3.nbs"
+    main_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    nbs_file_path = "songs/vengabus_wall.nbs"
     full_path = os.path.join(main_dir, nbs_file_path)
-    save_to_path = "./output/test3.nbt"
-    max_height = 52
+    save_to_path = os.path.join(main_dir, "output/vengabus_wall.nbt")
+    max_height = 374
     generate_wall_sequencer(full_path, save_to_path, INSTRUMENTS, max_height)
